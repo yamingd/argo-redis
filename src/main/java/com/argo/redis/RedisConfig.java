@@ -16,6 +16,9 @@ public class RedisConfig {
      * @throws IOException
      */
     public synchronized static void load() throws IOException {
+        if (instance != null){
+            return;
+        }
         RedisConfig.instance = YamlTemplate.load(RedisConfig.class, confName);
     }
 
