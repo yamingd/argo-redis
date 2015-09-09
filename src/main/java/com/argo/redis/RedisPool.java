@@ -1,6 +1,5 @@
 package com.argo.redis;
 
-import com.google.common.base.MoreObjects;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.BinaryJedis;
@@ -130,16 +129,18 @@ public class RedisPool extends Pool<BinaryJedis> {
 
     @Override
     public String toString() {
-        MoreObjects.ToStringHelper h = MoreObjects.toStringHelper(this);
-        h.add("NumActive", this.getNumActive());
-        h.add("BorrowedCount", this.internalPool.getBorrowedCount());
-        h.add("ReturnedCount", this.internalPool.getReturnedCount());
-        h.add("CreatedCount", this.internalPool.getCreatedCount());
-        h.add("DestroyedCount", this.internalPool.getDestroyedCount());
-        h.add("MeanActiveTimeMillis", this.internalPool.getMeanActiveTimeMillis());
-        h.add("MeanIdleTimeMillis", this.internalPool.getMeanIdleTimeMillis());
-        h.add("MeanBorrowWaitTimeMillis", this.internalPool.getMeanBorrowWaitTimeMillis());
-        h.add("MaxBorrowWaitTimeMillis", this.internalPool.getMaxBorrowWaitTimeMillis());
+        StringBuilder h = new StringBuilder(this.getClass().getName());
+        h.append("{");
+        h.append("NumActive=").append(this.getNumActive()).append(", ");
+        h.append("BorrowedCount=").append(this.internalPool.getBorrowedCount()).append(", ");
+        h.append("ReturnedCount=").append(this.internalPool.getReturnedCount()).append(", ");
+        h.append("CreatedCount=").append(this.internalPool.getCreatedCount()).append(", ");
+        h.append("DestroyedCount=").append(this.internalPool.getDestroyedCount()).append(", ");
+        h.append("MeanActiveTimeMillis=").append(this.internalPool.getMeanActiveTimeMillis()).append(", ");
+        h.append("MeanIdleTimeMillis=").append(this.internalPool.getMeanIdleTimeMillis()).append(", ");
+        h.append("MeanBorrowWaitTimeMillis=").append(this.internalPool.getMeanBorrowWaitTimeMillis()).append(", ");
+        h.append("MaxBorrowWaitTimeMillis=").append(this.internalPool.getMaxBorrowWaitTimeMillis());
+        h.append("}");
         return h.toString();
     }
 }
