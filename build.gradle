@@ -1,0 +1,48 @@
+group 'com.github.yamingd.argo'
+version '1.0'
+
+apply plugin: 'maven'
+apply plugin: 'java'
+apply plugin: 'signing'
+
+compileJava {
+    sourceCompatibility=1.7
+    targetCompatibility=1.7
+    options.encoding='UTF-8'
+}
+
+compileTestJava {
+    sourceCompatibility=1.7
+    targetCompatibility=1.7
+    options.encoding='UTF-8'
+}
+
+repositories {
+    mavenLocal()
+
+    maven { url 'http://maven.oschina.net/content/groups/public/' }
+
+    mavenCentral()
+}
+
+description = 'redis template for argo'
+
+dependencies {
+    compile 'redis.clients:jedis:2.7.3'
+    compile 'org.msgpack:msgpack:0.6.12'
+    compile 'org.springframework:spring-context-support:3.2.11.RELEASE'
+    compile 'org.yaml:snakeyaml:1.13'
+    compile 'com.google.guava:guava:18.0'
+    compile('org.slf4j:slf4j-api:1.7.5') {
+        exclude(module: 'log4j-over-slf4j')
+    }
+    compile 'org.slf4j:jul-to-slf4j:1.5.11'
+    compile 'ch.qos.logback:logback-classic:1.0.13'
+    testCompile 'junit:junit:4.12'
+}
+
+ext {
+    uploadArchive=true
+}
+
+apply from: 'maven_push.gradle'
