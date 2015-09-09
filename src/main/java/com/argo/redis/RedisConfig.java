@@ -1,11 +1,9 @@
 package com.argo.redis;
 
+import com.argo.yaml.YamlTemplate;
 import com.google.common.base.MoreObjects;
-import org.springframework.core.io.ClassPathResource;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 public class RedisConfig {
 
@@ -18,14 +16,7 @@ public class RedisConfig {
      * @throws IOException
      */
     public synchronized static void load() throws IOException {
-        ClassPathResource classPathResource = new ClassPathResource(confName);
-        if (classPathResource==null){
-            throw new IOException("can't load redis config: " + confName);
-        }else{
-            InputStream input = classPathResource.getInputStream();
-            Yaml yaml = new Yaml();
-            RedisConfig.instance = yaml.loadAs(input, RedisConfig.class);
-        }
+        RedisConfig.instance = YamlTemplate.load(RedisConfig.class, confName);
     }
 
     private Integer maxActive;

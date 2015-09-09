@@ -1,10 +1,9 @@
 package com.argo.redis;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.BinaryJedis;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Protocol;
 import redis.clients.util.JedisURIHelper;
 import redis.clients.util.Pool;
@@ -108,18 +107,18 @@ public class RedisPool extends Pool<BinaryJedis> {
         return jedis;
     }
 
-    public void returnBrokenResource(final Jedis resource) {
-        if (resource != null) {
-            returnBrokenResourceObject(resource);
-        }
-    }
-
-    public void returnResource(final Jedis resource) {
-        if (resource != null) {
-            resource.resetState();
-            returnResourceObject(resource);
-        }
-    }
+//    public void returnBrokenResource(final Jedis resource) {
+//        if (resource != null) {
+//            returnBrokenResourceObject(resource);
+//        }
+//    }
+//
+//    public void returnResource(final Jedis resource) {
+//        if (resource != null) {
+//            resource.resetState();
+//            returnResourceObject(resource);
+//        }
+//    }
 
     public int getNumActive() {
         if (this.internalPool == null || this.internalPool.isClosed()) {
@@ -131,7 +130,7 @@ public class RedisPool extends Pool<BinaryJedis> {
 
     @Override
     public String toString() {
-        Objects.ToStringHelper h = Objects.toStringHelper(this);
+        MoreObjects.ToStringHelper h = MoreObjects.toStringHelper(this);
         h.add("NumActive", this.getNumActive());
         h.add("BorrowedCount", this.internalPool.getBorrowedCount());
         h.add("ReturnedCount", this.internalPool.getReturnedCount());
