@@ -1,9 +1,5 @@
 package com.argo.redis;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.springframework.stereotype.Component;
 import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Protocol;
@@ -11,16 +7,12 @@ import redis.clients.jedis.Tuple;
 import redis.clients.util.SafeEncoder;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-@Component("redisBuket")
 public class RedisBuket extends RedisTemplate {
 
     public List<String> fromBytes(List<byte[]> lbs) throws UnsupportedEncodingException {
-        List<String> ret = Lists.newArrayList();
+        List<String> ret = new ArrayList<String>();
         if (lbs == null){
             return ret;
         }
@@ -41,7 +33,7 @@ public class RedisBuket extends RedisTemplate {
 		return this.execute(new RedisCommand<List<String>>(){
 			public List<String> execute(final BinaryJedis conn) throws Exception {
                 List<byte[]> bytes = conn.mget(SafeEncoder.encodeMany(keys));
-                List<String> ret = Lists.newArrayList();
+                List<String> ret = new ArrayList<String>();
                 for (byte[] item : bytes){
                     if (item != null) {
                         ret.add(SafeEncoder.encode(item));
@@ -63,7 +55,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<T>>(){
             public List<T> execute(final BinaryJedis conn) throws Exception {
                 List<byte[]> bytes = conn.mget(SafeEncoder.encodeMany(keys));
-                List<T> ret = Lists.newArrayList();
+                List<T> ret = new ArrayList<T>();
                 for (byte[] item : bytes){
                     if (item != null) {
                         ret.add(messagePack.read(item, clazz));
@@ -330,7 +322,7 @@ public class RedisBuket extends RedisTemplate {
 		return this.execute(new RedisCommand<Map<String, Integer>>(){
 			public Map<String, Integer> execute(final BinaryJedis conn) throws Exception {
                 Map<byte[], byte[]> bs = conn.hgetAll(SafeEncoder.encode(key));
-                Map<String, Integer> vals = Maps.newHashMap();
+                Map<String, Integer> vals = new HashMap<String, Integer>();
                 Iterator<byte[]> itor = bs.keySet().iterator();
                 while (itor.hasNext()){
                     byte[] k = itor.next();
@@ -454,7 +446,7 @@ public class RedisBuket extends RedisTemplate {
 				long start = (page - 1) * limit;
 				long end = start + limit;
 				List<byte[]> ls = conn.lrange(SafeEncoder.encode(key), start, end);
-                List<String> ret = Lists.newArrayList();
+                List<String> ret = new ArrayList<String>();
                 for (byte[] b : ls){
                     if (b != null) {
                         ret.add(SafeEncoder.encode(b));
@@ -471,7 +463,7 @@ public class RedisBuket extends RedisTemplate {
                 long start = (page - 1) * limit;
                 long end = start + limit;
                 List<byte[]> ls = conn.lrange(SafeEncoder.encode(key), start, end);
-                List<T> ret = Lists.newArrayList();
+                List<T> ret = new ArrayList<T>();
                 for (byte[] b : ls){
                     if (b != null) {
                         ret.add(messagePack.read(b, clazz));
@@ -606,7 +598,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<String>>(){
             public List<String> execute(final BinaryJedis conn) throws Exception {
                 byte[] bk = SafeEncoder.encode(key);
-                List<String> resp = Lists.newArrayList();
+                List<String> resp = new ArrayList<String>();
                 for (int i = 0; i < limit; i++) {
                     byte[] bs = conn.lpop(bk);
                     if (bs != null){
@@ -623,7 +615,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<T>>(){
             public List<T> execute(final BinaryJedis conn) throws Exception {
                 byte[] bk = SafeEncoder.encode(key);
-                List<T> resp = Lists.newArrayList();
+                List<T> resp = new ArrayList<T>();
                 for (int i = 0; i < limit; i++) {
                     byte[] bs = conn.lpop(bk);
                     if (bs != null){
@@ -669,7 +661,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<String>>(){
             public List<String> execute(final BinaryJedis conn) throws Exception {
                 byte[] bk = SafeEncoder.encode(key);
-                List<String> resp = Lists.newArrayList();
+                List<String> resp = new ArrayList<String>();
                 for (int i = 0; i < limit; i++) {
                     byte[] bs = conn.rpop(bk);
                     if (bs != null){
@@ -686,7 +678,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<T>>(){
             public List<T> execute(final BinaryJedis conn) throws Exception {
                 byte[] bk = SafeEncoder.encode(key);
-                List<T> resp = Lists.newArrayList();
+                List<T> resp = new ArrayList<T>();
                 for (int i = 0; i < limit; i++) {
                     byte[] bs = conn.rpop(bk);
                     if (bs != null){
@@ -708,7 +700,7 @@ public class RedisBuket extends RedisTemplate {
     	return this.execute(new RedisCommand<List<String>>(){
 			public List<String> execute(final BinaryJedis conn) throws Exception {
 				List<byte[]> lbs = conn.sort(SafeEncoder.encode(key));
-                List<String> ret = Lists.newArrayList();
+                List<String> ret = new ArrayList<String>();
                 for (byte[] b : lbs){
                     if (b != null) {
                         ret.add(SafeEncoder.encode(b));
@@ -772,7 +764,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<T>>(){
             public List<T> execute(final BinaryJedis conn) throws Exception {
                 List<byte[]> bs = conn.blpop(timeout, SafeEncoder.encodeMany(keys));
-                List<T> ret = Lists.newArrayList();
+                List<T> ret = new ArrayList<T>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(messagePack.read(b, clazz));
@@ -796,7 +788,7 @@ public class RedisBuket extends RedisTemplate {
         return this.execute(new RedisCommand<List<T>>(){
             public List<T> execute(final BinaryJedis conn) throws Exception {
                 List<byte[]> bs = conn.brpop(timeout, SafeEncoder.encodeMany(keys));
-                List<T> ret = Lists.newArrayList();
+                List<T> ret = new ArrayList<T>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(messagePack.read(b, clazz));
@@ -850,7 +842,7 @@ public class RedisBuket extends RedisTemplate {
     	return this.execute(new RedisCommand<Set<String>>(){
 			public Set<String> execute(final BinaryJedis conn) throws Exception {
 				Set<byte[]> sk = conn.smembers(SafeEncoder.encode(key));
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : sk){
                     if (b != null) {
                         ret.add(SafeEncoder.encode(b));
@@ -930,7 +922,7 @@ public class RedisBuket extends RedisTemplate {
 			public List<String> execute(final BinaryJedis conn) throws Exception {
 				List<byte[]> lbs = conn.srandmember(SafeEncoder.encode(key), count);
                 if (lbs == null){
-                    return Lists.newArrayList();
+                    return Collections.emptyList();
                 }
                 return fromBytes(lbs);
 			}
@@ -976,7 +968,7 @@ public class RedisBuket extends RedisTemplate {
     public Long zadd(final String key, final Map<String, Double> scoreMembers){
     	return this.execute(new RedisCommand<Long>(){
 			public Long execute(final BinaryJedis conn) throws Exception {
-                Map<byte[], Double> ms = Maps.newHashMap();
+                Map<byte[], Double> ms = new HashMap<byte[], Double>();
                 Iterator<String> itor = scoreMembers.keySet().iterator();
                 while (itor.hasNext()){
                     String k = itor.next();
@@ -993,7 +985,7 @@ public class RedisBuket extends RedisTemplate {
 				long start = (page - 1) * limit;
 				long end = start + limit;
 				Set<byte[]> bs = conn.zrange(SafeEncoder.encode(key), start, end);
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(SafeEncoder.encode(b));
@@ -1009,7 +1001,7 @@ public class RedisBuket extends RedisTemplate {
 				long start = (page - 1) * limit;
 				long end = start + limit;
 				Set<byte[]> bs = conn.zrevrange(SafeEncoder.encode(key), start, end);
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(SafeEncoder.encode(b));
@@ -1154,7 +1146,7 @@ public class RedisBuket extends RedisTemplate {
     	return this.execute(new RedisCommand<Set<String>>(){
 			public Set<String> execute(final BinaryJedis conn) throws Exception {
 				Set<byte[]> bs = conn.zrangeByScore(SafeEncoder.encode(key), min, max);
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(new String(b, Protocol.CHARSET));
@@ -1169,7 +1161,7 @@ public class RedisBuket extends RedisTemplate {
     	return this.execute(new RedisCommand<Set<String>>(){
 			public Set<String> execute(final BinaryJedis conn) throws Exception {
 				Set<byte[]> bs = conn.zrangeByScore(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(new String(b, Protocol.CHARSET));
@@ -1184,7 +1176,7 @@ public class RedisBuket extends RedisTemplate {
     	return this.execute(new RedisCommand<Set<String>>(){
 			public Set<String> execute(final BinaryJedis conn) throws Exception {
 				Set<byte[]> bs = conn.zrevrangeByScore(SafeEncoder.encode(key), min, max);
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(new String(b, Protocol.CHARSET));
@@ -1199,7 +1191,7 @@ public class RedisBuket extends RedisTemplate {
     	return this.execute(new RedisCommand<Set<String>>(){
 			public Set<String> execute(final BinaryJedis conn) throws Exception {
                 Set<byte[]> bs = conn.zrevrangeByScore(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-                Set<String> ret = Sets.newHashSet();
+                Set<String> ret = new HashSet<String>();
                 for (byte[] b : bs){
                     if (b != null) {
                         ret.add(new String(b, Protocol.CHARSET));
