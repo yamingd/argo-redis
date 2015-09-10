@@ -1,6 +1,5 @@
 package com.argo.redis;
 
-import org.springframework.stereotype.Component;
 import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Protocol;
@@ -10,8 +9,10 @@ import redis.clients.util.SafeEncoder;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
-@Component("redisBucket")
 public class RedisBuket extends RedisTemplate {
+
+    public RedisBuket() throws Exception {
+    }
 
     public List<String> fromBytes(List<byte[]> lbs) throws UnsupportedEncodingException {
         List<String> ret = new ArrayList<String>();

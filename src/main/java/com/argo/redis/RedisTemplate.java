@@ -3,18 +3,14 @@ package com.argo.redis;
 import org.msgpack.MessagePack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanNameAware;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
 import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.Closeable;
 import java.io.IOException;
 
-public abstract class RedisTemplate implements BeanNameAware, InitializingBean, DisposableBean, Closeable {
+public abstract class RedisTemplate implements Closeable {
 
-    private String beanName = "";
     protected Logger logger = null;
 
     private String serverName = null;
@@ -29,8 +25,9 @@ public abstract class RedisTemplate implements BeanNameAware, InitializingBean, 
 
     protected MessagePack messagePack = new MessagePack();
 
-    public void afterPropertiesSet() throws Exception {
-        logger = LoggerFactory.getLogger(this.getClass() + "." + beanName);
+    public RedisTemplate() throws Exception {
+        logger = LoggerFactory.getLogger(this.getClass());
+
         RedisConfig.load();
         redisConfig = RedisConfig.instance;
 
@@ -43,15 +40,10 @@ public abstract class RedisTemplate implements BeanNameAware, InitializingBean, 
 
         this.initJedisPool();
 
-        new MonitorThread().start();
-    }
-
-    @Override
-    public void destroy() throws Exception {
-        stopping = true;
-        if (null != this.jedisPool){
-            this.jedisPool.destroy();
-        }
+        Thread thread =  new MonitorThread();
+        thread.setDaemon(true);
+        thread.setName("RedisBucketMonitor");
+        thread.start();
     }
 
     @Override
@@ -60,10 +52,6 @@ public abstract class RedisTemplate implements BeanNameAware, InitializingBean, 
         if (null != this.jedisPool){
             this.jedisPool.close();
         }
-    }
-
-    public void setBeanName(String name) {
-        this.beanName = name;
     }
 
     public RedisPool getJedisPool() {
@@ -154,11 +142,7 @@ public abstract class RedisTemplate implements BeanNameAware, InitializingBean, 
     }
 
     public String getServerName() {
-        return serverName;
-    }
-
-    public void setServerName(String serverName) {
-        this.serverName = serverName;
+        return redisConfig.getHost();
     }
 
     private class MonitorThread extends Thread {
@@ -191,15 +175,14 @@ public abstract class RedisTemplate implements BeanNameAware, InitializingBean, 
                             returnConnection(jedis);
                             break;
                         } catch (Exception e) {
-                            logger.error("Redis链接错误", e);
+                            logger.error("redis链接错误", e);
                             errorTimes++;
                         }
                     }
                     if (errorTimes == 3) {// 3次全部出错，表示服务器出现问题
                         ALIVE = false;
                         serverDown = true; // 只是在异常出现第一次进行跳出处理，后面的按异常检查时间进行延时处理
-                        logger.error(beanName + " -> redis[" + getServerName()
-                            + "] 服务器连接不上");
+                        logger.error("redis[{}] 服务器连接不上", getServerName());
                         // 修改休眠时间为5秒，尽快恢复服务
                         sleepTime = 5000;
                     } else {
@@ -207,17 +190,15 @@ public abstract class RedisTemplate implements BeanNameAware, InitializingBean, 
                             ALIVE = true;
                             // 修改休眠时间为30秒，服务恢复
                             sleepTime = 30000;
-                            logger.info(beanName + " --> redis["
-                                + getServerName() + "] 服务器恢复正常");
+                            logger.info("redis[{}] 服务器恢复正常", getServerName());
                         }
                         serverDown = false;
                         BinaryJedis jedis = getJedisPool().getResource();
-                        logger.info(beanName + " --> im redis["
-                            + getServerName() + "] 当前记录数：" + jedis.dbSize());
+                        logger.info("redis[{}] 当前记录数：{}", getServerName(), jedis.dbSize());
                         returnConnection(jedis);
                     }
                 } catch (Exception e) {
-                    logger.error("Redis错误", e);
+                    logger.error("redis错误", e);
                 }
             }
         }
