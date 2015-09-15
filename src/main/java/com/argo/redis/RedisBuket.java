@@ -11,7 +11,17 @@ import java.util.*;
 
 public class RedisBuket extends RedisTemplate {
 
+    static RedisBuket redisBuket = null;
+
     public RedisBuket() throws Exception {
+    }
+
+    public synchronized static RedisBuket getInstance() throws Exception {
+        if (redisBuket == null){
+            redisBuket = new RedisBuket();
+        }
+
+        return redisBuket;
     }
 
     public List<String> fromBytes(List<byte[]> lbs) throws UnsupportedEncodingException {
@@ -52,7 +62,7 @@ public class RedisBuket extends RedisTemplate {
      * @param clazz
      * @param keys
      * @param <T>
-     * @return
+     * @return List
      */
     public <T> List<T> mget(final Class<T> clazz, final String... keys){
         return this.execute(new RedisCommand<List<T>>(){
@@ -93,7 +103,7 @@ public class RedisBuket extends RedisTemplate {
      * @param clazz
      * @param key
      * @param <T>
-     * @return
+     * @return T
      */
     public <T> T get(final Class<T> clazz, final String key){
         return this.execute(new RedisCommand<T>(){
@@ -169,7 +179,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param seconds
      * @param value
-     * @return
+     * @return String
      */
     public String setex(final String key, final int seconds, final String value){
     	return this.execute(new RedisCommand<String>(){
@@ -179,6 +189,14 @@ public class RedisBuket extends RedisTemplate {
 		});
     }
 
+    /**
+     *
+     * @param key
+     * @param seconds
+     * @param value
+     * @param <T>
+     * @return T
+     */
     public <T> String setex(final String key, final int seconds, final T value){
         return this.execute(new RedisCommand<String>(){
             public String execute(final BinaryJedis conn) throws Exception {
@@ -217,7 +235,7 @@ public class RedisBuket extends RedisTemplate {
 	/**
 	 * 删除Key
 	 * @param keys 缓存keys
-	 * @return
+	 * @return boolean
 	 */
 	public boolean delete(final String... keys){
 		return this.execute(new RedisCommand<Boolean>(){
@@ -230,7 +248,7 @@ public class RedisBuket extends RedisTemplate {
 	 * 自增
 	 * @param key
 	 * @param amount
-	 * @return
+	 * @return long
 	 */
 	public long incr(final String key, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -243,7 +261,7 @@ public class RedisBuket extends RedisTemplate {
 	 * 自减
 	 * @param key
 	 * @param amount
-	 * @return
+	 * @return long
 	 */
 	public long decr(final String key, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -256,7 +274,7 @@ public class RedisBuket extends RedisTemplate {
 	 * HashMap自增
 	 * @param key
 	 * @param amount
-	 * @return
+	 * @return long
 	 */
 	public long hincr(final String key, final String field, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -269,7 +287,7 @@ public class RedisBuket extends RedisTemplate {
 	 * HashMap自增.
 	 * @param key
 	 * @param nums
-	 * @return
+	 * @return long
 	 */
 	public long hincr(final String key, final Map<String, Integer> nums){
 		return this.execute(new RedisCommand<Long>(){
@@ -288,7 +306,7 @@ public class RedisBuket extends RedisTemplate {
 	 * HashMap自减
 	 * @param key
 	 * @param amount
-	 * @return
+	 * @return long
 	 */
 	public long hdecr(final String key, final String field, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -301,7 +319,7 @@ public class RedisBuket extends RedisTemplate {
 	 * HashMap自增.
 	 * @param key
 	 * @param nums
-	 * @return
+	 * @return long
 	 */
 	public long hdecr(final String key, final Map<String, Integer> nums){
 		return this.execute(new RedisCommand<Long>(){
@@ -319,7 +337,7 @@ public class RedisBuket extends RedisTemplate {
 	/**
 	 * 返回HashMap的K-V值.
 	 * @param key
-	 * @return
+	 * @return Map
 	 */
 	public Map<String, Integer> hall(final String key){
 		return this.execute(new RedisCommand<Map<String, Integer>>(){
@@ -341,7 +359,7 @@ public class RedisBuket extends RedisTemplate {
 	 * 移除HashMap的Keys.
 	 * @param key
 	 * @param fields
-	 * @return
+	 * @return boolean
 	 */
 	public boolean hrem(final String key, final String... fields){
 		return this.execute(new RedisCommand<Boolean>(){
@@ -355,7 +373,7 @@ public class RedisBuket extends RedisTemplate {
 	 * HashMap重置.
 	 * @param key
 	 * @param nums
-	 * @return
+	 * @return long
 	 */
 	public long hset(final String key, final Map<String, Integer> nums){
 		return this.execute(new RedisCommand<Long>(){
@@ -375,7 +393,7 @@ public class RedisBuket extends RedisTemplate {
 	 * 从队列右边写入值.
 	 * @param key
 	 * @param values
-	 * @return
+	 * @return long
 	 */
 	public Long rpush(final String key, final String... values){
 		return this.execute(new RedisCommand<Long>(){
@@ -401,7 +419,7 @@ public class RedisBuket extends RedisTemplate {
      * 从队列左边写入值.
      * @param key
      * @param values
-     * @return
+     * @return long
      */
     public Long lpush(final String key, final String... values){
     	return this.execute(new RedisCommand<Long>(){
@@ -426,7 +444,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 计算队列的长度.
      * @param key
-     * @return
+     * @return long
      */
     public Long llen(final String key){
     	return this.execute(new RedisCommand<Long>(){
@@ -441,7 +459,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key 缓存Key
      * @param page 页码
      * @param limit 每页记录数.
-     * @return
+     * @return List
      */
     public List<String> lrange(final String key, final int page, final int limit){
     	return this.execute(new RedisCommand<List<String>>(){
@@ -482,7 +500,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param start
      * @param end
-     * @return
+     * @return String
      */
     public String ltrim(final String key, final int start, final int end){
     	return this.execute(new RedisCommand<String>(){
@@ -496,7 +514,7 @@ public class RedisBuket extends RedisTemplate {
      * 返回第index的元素.
      * @param key
      * @param index
-     * @return
+     * @return String
      */
     public String lindex(final String key, final int index){
     	return this.execute(new RedisCommand<String>(){
@@ -527,7 +545,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param index
      * @param value
-     * @return
+     * @return String
      */
     public String lset(final String key, final int index, final String value){
     	return this.execute(new RedisCommand<String>(){
@@ -550,7 +568,7 @@ public class RedisBuket extends RedisTemplate {
      * 删除List的某个元素.
      * @param key
      * @param value
-     * @return
+     * @return Long
      */
     public Long lrem(final String key, final String value){
     	return this.execute(new RedisCommand<Long>(){
@@ -572,7 +590,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 从List左边取出元素.(FIFO)
      * @param key
-     * @return
+     * @return String
      */
     public String lpop(final String key){
     	return this.execute(new RedisCommand<String>(){
@@ -634,7 +652,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 从List右边取出元素.(LIFO)
      * @param key
-     * @return
+     * @return String
      */
     public String rpop(final String key){
     	return this.execute(new RedisCommand<String>(){
@@ -697,7 +715,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 将List中的元素排序.
      * @param key
-     * @return
+     * @return List
      */
     public List<String> lsort(final String key){
     	return this.execute(new RedisCommand<List<String>>(){
@@ -806,7 +824,7 @@ public class RedisBuket extends RedisTemplate {
      * 往Set结构中写入值.
      * @param key
      * @param members
-     * @return
+     * @return Long
      */
     public Long sadd(final String key, final String... members){
     	return this.execute(new RedisCommand<Long>(){
@@ -820,7 +838,7 @@ public class RedisBuket extends RedisTemplate {
      * 往Set结构中写入值.
      * @param key
      * @param members
-     * @return
+     * @return Long
      */
     public Long sadd(final String key, final List<?> members){
     	return this.execute(new RedisCommand<Long>(){
@@ -839,7 +857,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 返回Set结构中的所有元素.
      * @param key
-     * @return
+     * @return Set
      */
     public Set<String> smembers(final String key){
     	return this.execute(new RedisCommand<Set<String>>(){
@@ -860,7 +878,7 @@ public class RedisBuket extends RedisTemplate {
      * 移除Set结构中的元素.
      * @param key
      * @param members
-     * @return
+     * @return long
      */
     public Long srem(final String key, final String... members){
     	return this.execute(new RedisCommand<Long>(){
@@ -873,7 +891,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 随机移除Set中的元素.
      * @param key
-     * @return
+     * @return String
      */
     public String spop(final String key){
     	return this.execute(new RedisCommand<String>(){
@@ -890,7 +908,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 返回Set中的元素个数.
      * @param key
-     * @return
+     * @return Long
      */
     public Long scard(final String key){
     	return this.execute(new RedisCommand<Long>(){
@@ -904,7 +922,7 @@ public class RedisBuket extends RedisTemplate {
      * 判断Set中是否包含某元素.
      * @param key
      * @param member
-     * @return
+     * @return boolean
      */
     public Boolean sismember(final String key, final String member){
     	return this.execute(new RedisCommand<Boolean>(){
@@ -918,7 +936,7 @@ public class RedisBuket extends RedisTemplate {
      * 随机选取Set中的元素
      * @param key 缓存Key.
      * @param count 返回元素个数
-     * @return
+     * @return List
      */
     public List<String> srandmember(final String key, final int count){
     	return this.execute(new RedisCommand<List<String>>(){
@@ -935,7 +953,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 将Set中的元素排序.
      * @param key
-     * @return
+     * @return List
      */
     public List<String> ssort(final String key){
     	return this.execute(new RedisCommand<List<String>>(){
@@ -951,7 +969,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param score
      * @param member
-     * @return
+     * @return long
      */
     public Long zadd(final String key, final double score, final String member){
     	return this.execute(new RedisCommand<Long>(){
@@ -966,7 +984,7 @@ public class RedisBuket extends RedisTemplate {
      * 往SortedSet中添加元素.
      * @param key
      * @param scoreMembers
-     * @return
+     * @return long
      */
     public Long zadd(final String key, final Map<String, Double> scoreMembers){
     	return this.execute(new RedisCommand<Long>(){
@@ -1035,7 +1053,7 @@ public class RedisBuket extends RedisTemplate {
      * 按升序排序，取得排名.
      * @param key
      * @param member
-     * @return
+     * @return long
      */
     public Long zrank(final String key, final String member){
     	return this.execute(new RedisCommand<Long>(){
@@ -1049,7 +1067,7 @@ public class RedisBuket extends RedisTemplate {
      * 按降序排序，取得排名.
      * @param key
      * @param member
-     * @return
+     * @return long
      */
     public Long zrevrank(final String key, final String member){
     	return this.execute(new RedisCommand<Long>(){
@@ -1064,7 +1082,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param page
      * @param limit
-     * @return
+     * @return Set
      */
     public Set<Tuple> zrangeWithScores(final String key, final int page, final int limit){
     	return this.execute(new RedisCommand<Set<Tuple>>(){
@@ -1082,7 +1100,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param page
      * @param limit
-     * @return
+     * @return Set
      */
     public Set<Tuple> zrevrangeWithScores(final String key, final int page, final int limit){
     	return this.execute(new RedisCommand<Set<Tuple>>(){
@@ -1097,7 +1115,7 @@ public class RedisBuket extends RedisTemplate {
     /**
      * 返回SortedSet元素个数.
      * @param key
-     * @return
+     * @return long
      */
     public Long zcard(final String key){
     	return this.execute(new RedisCommand<Long>(){
@@ -1111,7 +1129,7 @@ public class RedisBuket extends RedisTemplate {
      * 返回某个元素的分数.
      * @param key
      * @param member
-     * @return
+     * @return double
      */
     public Double zscore(final String key, final String member){
     	return this.execute(new RedisCommand<Double>(){
@@ -1143,7 +1161,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param min
      * @param max
-     * @return
+     * @return Set
      */
     public Set<String> zrangeByScore(final String key, final double min, final double max){
     	return this.execute(new RedisCommand<Set<String>>(){
@@ -1211,7 +1229,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param min
      * @param max
-     * @return
+     * @return Set
      */
     public Set<Tuple> zrangeByScoreWithScores(final String key, final double min, final double max){
     	return this.execute(new RedisCommand<Set<Tuple>>(){
@@ -1250,7 +1268,7 @@ public class RedisBuket extends RedisTemplate {
      * @param key
      * @param start
      * @param end
-     * @return
+     * @return long
      */
     public Long zremrangeByRank(final String key, final int start, final int end){
     	return this.execute(new RedisCommand<Long>(){
