@@ -117,11 +117,37 @@ public class RedisBuket extends RedisTemplate {
         });
     }
 
+    /**
+     *
+     * @param key
+     * @param value
+     * @param <T>
+     * @return
+     */
     public <T> String set(final String key, final T value){
         return this.execute(new RedisCommand<String>(){
             public String execute(final BinaryJedis conn) throws Exception {
                 byte[] ds = messagePack.write(value);
                 return conn.set(SafeEncoder.encode(key), ds);
+            }
+        });
+    }
+
+    /**
+     *
+     * @param keys
+     * @param values
+     * @param <T>
+     * @return
+     */
+    public <T> boolean set(final List<String> keys, final List<T> values){
+        return this.execute(new RedisCommand<Boolean>(){
+            public Boolean execute(final BinaryJedis conn) throws Exception {
+                for (int i = 0; i < keys.size(); i++) {
+                    byte[] ds = messagePack.write(values.get(i));
+                    conn.set(SafeEncoder.encode(keys.get(i)), ds);
+                }
+                return true;
             }
         });
     }
