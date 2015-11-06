@@ -39,8 +39,8 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      * multi get
-     * @param keys keys
-     * @return List<String>
+     * @param keys 读取的keys
+     * @return List 返回列表
      */
     public List<String> mget(final String... keys){
 		return this.execute(new RedisCommand<List<String>>(){
@@ -59,10 +59,10 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      * Get Object List
-     * @param clazz
-     * @param keys
-     * @param <T>
-     * @return List
+     * @param clazz 目标类型
+     * @param keys 读取的keys
+     * @param <T> 目标类型
+     * @return List 列表, 若key不存在，则返回null
      */
     public <T> List<T> mget(final Class<T> clazz, final String... keys){
         return this.execute(new RedisCommand<List<T>>(){
@@ -83,8 +83,8 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      * get single key
-     * @param key key
-     * @return String
+     * @param key 缓存key
+     * @return String 缓存的字符串
      */
 	public String get(final String key){
 		return this.execute(new RedisCommand<String>(){
@@ -100,10 +100,10 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      * Get Object
-     * @param clazz
-     * @param key
-     * @param <T>
-     * @return T
+     * @param clazz 目标类型
+     * @param key 缓存key
+     * @param <T> 目标类型
+     * @return T 目标实例
      */
     public <T> T get(final Class<T> clazz, final String key){
         return this.execute(new RedisCommand<T>(){
@@ -119,10 +119,10 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      *
-     * @param key
-     * @param value
-     * @param <T>
-     * @return
+     * @param key 缓存key
+     * @param value 缓存数据
+     * @param <T> 缓存数据类型
+     * @return String 结果
      */
     public <T> String set(final String key, final T value){
         return this.execute(new RedisCommand<String>(){
@@ -135,10 +135,10 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      *
-     * @param keys
-     * @param values
-     * @param <T>
-     * @return
+     * @param keys 缓存key
+     * @param values 缓存数据，和keys保持一致
+     * @param <T> 目标类型
+     * @return boolean 缓存成功标志
      */
     public <T> boolean set(final List<String> keys, final List<T> values){
         return this.execute(new RedisCommand<Boolean>(){
@@ -154,9 +154,9 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      * GETSET
-     * @param key
-     * @param value
-     * @return String: old value
+     * @param key 缓存key
+     * @param value 缓存字符串
+     * @return String 返回上一个版本的数据，如果有的话，否则返回null
      */
 	public String getSet(final String key, final String value){
 		return this.execute(new RedisCommand<String>(){
@@ -202,10 +202,10 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      * 相当于Set+Expire命令组合.
-     * @param key
-     * @param seconds
-     * @param value
-     * @return String
+     * @param key 缓存key
+     * @param seconds 过期时间(秒)
+     * @param value 缓存数据
+     * @return String 缓存操作状态
      */
     public String setex(final String key, final int seconds, final String value){
     	return this.execute(new RedisCommand<String>(){
@@ -217,11 +217,11 @@ public class RedisBuket extends RedisTemplate {
 
     /**
      *
-     * @param key
-     * @param seconds
-     * @param value
-     * @param <T>
-     * @return T
+     * @param key 缓存key
+     * @param seconds 过期时间(秒)
+     * @param value 缓存数据
+     * @param <T> 数据类型
+     * @return String 缓存操作状态
      */
     public <T> String setex(final String key, final int seconds, final T value){
         return this.execute(new RedisCommand<String>(){
@@ -261,7 +261,7 @@ public class RedisBuket extends RedisTemplate {
 	/**
 	 * 删除Key
 	 * @param keys 缓存keys
-	 * @return boolean
+	 * @return boolean 缓存操作状态
 	 */
 	public boolean delete(final String... keys){
 		return this.execute(new RedisCommand<Boolean>(){
@@ -272,9 +272,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * 自增
-	 * @param key
-	 * @param amount
-	 * @return long
+	 * @param key 缓存key
+	 * @param amount 自增量
+	 * @return long 返回结果数值
 	 */
 	public long incr(final String key, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -285,9 +285,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * 自减
-	 * @param key
-	 * @param amount
-	 * @return long
+	 * @param key 缓存key
+	 * @param amount 减少的量
+	 * @return long 返回结果数值
 	 */
 	public long decr(final String key, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -298,9 +298,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * HashMap自增
-	 * @param key
-	 * @param amount
-	 * @return long
+	 * @param key 缓存key
+	 * @param amount 自增量
+	 * @return long 返回结果数值
 	 */
 	public long hincr(final String key, final String field, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -311,9 +311,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * HashMap自增.
-	 * @param key
-	 * @param nums
-	 * @return long
+	 * @param key 缓存key
+	 * @param nums 自增量
+	 * @return long 返回1L
 	 */
 	public long hincr(final String key, final Map<String, Integer> nums){
 		return this.execute(new RedisCommand<Long>(){
@@ -330,9 +330,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * HashMap自减
-	 * @param key
-	 * @param amount
-	 * @return long
+	 * @param key 缓存key
+	 * @param amount 自减量
+	 * @return long 返回结果值
 	 */
 	public long hdecr(final String key, final String field, final Integer amount){
 		return this.execute(new RedisCommand<Long>(){
@@ -343,9 +343,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * HashMap自增.
-	 * @param key
-	 * @param nums
-	 * @return long
+	 * @param key 缓存key
+	 * @param nums 自减量
+	 * @return long 返回结果值
 	 */
 	public long hdecr(final String key, final Map<String, Integer> nums){
 		return this.execute(new RedisCommand<Long>(){
@@ -362,8 +362,8 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * 返回HashMap的K-V值.
-	 * @param key
-	 * @return Map
+	 * @param key 缓存key
+	 * @return Map 返回HashMap
 	 */
 	public Map<String, Integer> hall(final String key){
 		return this.execute(new RedisCommand<Map<String, Integer>>(){
@@ -383,9 +383,9 @@ public class RedisBuket extends RedisTemplate {
 	}
 	/**
 	 * 移除HashMap的Keys.
-	 * @param key
-	 * @param fields
-	 * @return boolean
+	 * @param key 缓存key
+	 * @param fields 要移除的keys
+	 * @return boolean 操作状态
 	 */
 	public boolean hrem(final String key, final String... fields){
 		return this.execute(new RedisCommand<Boolean>(){
