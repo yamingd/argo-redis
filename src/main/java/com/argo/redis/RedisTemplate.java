@@ -8,6 +8,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Date;
 
 public abstract class RedisTemplate implements Closeable {
 
@@ -24,6 +25,7 @@ public abstract class RedisTemplate implements Closeable {
     private JedisPoolConfig config;
 
     protected MessagePack messagePack = new MessagePack();
+    protected MonitorThread monitorThread;
 
     public RedisTemplate() throws Exception {
         logger = LoggerFactory.getLogger(this.getClass());
@@ -40,15 +42,16 @@ public abstract class RedisTemplate implements Closeable {
 
         this.initJedisPool();
 
-        Thread thread =  new MonitorThread();
-        thread.setDaemon(true);
-        thread.setName("RedisBucketMonitor");
-        thread.start();
+        monitorThread =  new MonitorThread();
+        monitorThread.setDaemon(true);
+        monitorThread.setName("RedisBucketMonitor");
+        monitorThread.start();
     }
 
     @Override
     public void close() throws IOException {
         stopping = true;
+        monitorThread.interrupt();
         if (null != this.jedisPool){
             this.jedisPool.close();
         }
@@ -161,11 +164,21 @@ public abstract class RedisTemplate implements Closeable {
                         if (serverDown) {// 检查到异常，立即进行检测处理
                             break;
                         }
-                        Thread.sleep(baseSleepTime);
+                        try {
+                            Thread.sleep(baseSleepTime);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                        if (stopping){
+                            break;
+                        }
+                    }
+                    if (stopping){
+                        break;
                     }
                     // 连续做3次连接获取
                     int errorTimes = 0;
-                    for (int i = 0; i < 3; i++) {
+                    for (int i = 0; i < 3 && !stopping; i++) {
                         try {
                             BinaryJedis jedis = getJedisPool().getResource();
                             if (jedis == null) {
@@ -175,9 +188,15 @@ public abstract class RedisTemplate implements Closeable {
                             returnConnection(jedis);
                             break;
                         } catch (Exception e) {
+                            if (stopping){
+                                break;
+                            }
                             logger.error("redis链接错误", e);
                             errorTimes++;
                         }
+                    }
+                    if (stopping){
+                        break;
                     }
                     if (errorTimes == 3) {// 3次全部出错，表示服务器出现问题
                         ALIVE = false;
@@ -198,9 +217,15 @@ public abstract class RedisTemplate implements Closeable {
                         returnConnection(jedis);
                     }
                 } catch (Exception e) {
+                    if (stopping){
+                        break;
+                    }
                     logger.error("redis错误", e);
                 }
             }
+
+            logger.info("RedisClient has been exit. {}", new Date());
+
         }
     }
 }
