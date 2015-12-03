@@ -13,7 +13,24 @@ import java.util.Date;
 @Message
 public class Person {
 
-    public Long id;
+    public Integer id;
     public String name;
     public Date createAt;
+
+    public Person(Integer id) {
+        this.id = id;
+    }
+
+    public Person() {
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("Person{");
+        sb.append("id=").append(id);
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", createAt=").append(createAt);
+        sb.append('}');
+        return sb.toString();
+    }
 }
