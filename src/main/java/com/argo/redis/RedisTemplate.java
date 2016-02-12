@@ -3,12 +3,17 @@ package com.argo.redis;
 import org.msgpack.MessagePack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.BinaryJedis;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisSentinelPool;
+import redis.clients.util.Pool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class RedisTemplate implements Closeable {
 
@@ -21,8 +26,8 @@ public abstract class RedisTemplate implements Closeable {
     private volatile boolean stopping = false;
     private RedisConfig redisConfig = null;
 
-    private RedisPool jedisPool;
-    private JedisPoolConfig config;
+    private Pool<Jedis> jedisPool;
+    private JedisPoolConfig jedisPoolConfig;
 
     protected MessagePack messagePack = new MessagePack();
     protected MonitorThread monitorThread;
@@ -33,12 +38,12 @@ public abstract class RedisTemplate implements Closeable {
         RedisConfig.load();
         redisConfig = RedisConfig.instance;
 
-        config = new JedisPoolConfig();
-        config.setMaxTotal(this.redisConfig.getMaxActive());
-        config.setMaxIdle(this.redisConfig.getMaxIdle());
-        config.setMaxWaitMillis(this.redisConfig.getTimeout() * 1000);
-        config.setTestOnBorrow(this.redisConfig.getTestOnBorrow());
-        config.setTestWhileIdle(this.redisConfig.getTestWhileIdle());
+        jedisPoolConfig = new JedisPoolConfig();
+        jedisPoolConfig.setMaxTotal(this.redisConfig.getMaxActive());
+        jedisPoolConfig.setMaxIdle(this.redisConfig.getMaxIdle());
+        jedisPoolConfig.setMaxWaitMillis(this.redisConfig.getTimeout() * 1000);
+        jedisPoolConfig.setTestOnBorrow(this.redisConfig.getTestOnBorrow());
+        jedisPoolConfig.setTestWhileIdle(this.redisConfig.getTestWhileIdle());
 
         this.initJedisPool();
 
@@ -57,13 +62,21 @@ public abstract class RedisTemplate implements Closeable {
         }
     }
 
-    public RedisPool getJedisPool() {
+    public Pool<Jedis> getJedisPool() {
         return jedisPool;
     }
 
     protected void initJedisPool() {
-        this.jedisPool =
-            new RedisPool(config, redisConfig.getHost(), redisConfig.getPort());
+        if (null == redisConfig.getSentinel() || !redisConfig.getSentinel().enabled) {
+            this.jedisPool =
+                    new JedisPool(jedisPoolConfig, redisConfig.getHost(), redisConfig.getPort());
+            logger.info("initJedisPool. {}", this.jedisPool);
+        }else{
+            Set<String> sets = new HashSet<>();
+            sets.addAll(redisConfig.getSentinel().hosts);
+            this.jedisPool = new JedisSentinelPool(redisConfig.getSentinel().master, sets, jedisPoolConfig);
+            logger.info("initJedisPool. {}", this.jedisPool);
+        }
     }
 
     // 执行具体COMMAND
@@ -72,11 +85,30 @@ public abstract class RedisTemplate implements Closeable {
             logger.error("Redis is Still Down.");
             return null;
         }
-        BinaryJedis conn = null;
+        Jedis conn = null;
         boolean error = false;
         try {
-            conn = getJedisPool().getResource();
-            return action.execute(conn);
+            int limit = 3;
+            while (limit > 0) {
+                try {
+                    conn = getJedisPool().getResource();
+                    limit = 0;
+                } catch (Exception e) {
+                    logger.error("Get Resource ERROR.", e);
+                    limit --;
+                }
+                if (null != conn){
+                    break;
+                }
+            }
+            if (null == conn){
+                serverDown = true;
+                error = true;
+                logger.error("Execute Redis Command ERROR. Could not get a resource from the pool");
+                return null;
+            }else {
+                return action.execute(conn);
+            }
         } catch (Exception e) {
             serverDown = true;
             error = true;
@@ -112,7 +144,7 @@ public abstract class RedisTemplate implements Closeable {
 
     public String info() {
         return this.execute(new RedisCommand<String>() {
-            public String execute(BinaryJedis conn) throws Exception {
+            public String execute(Jedis conn) throws Exception {
                 return conn.info();
             }
         });
@@ -123,13 +155,9 @@ public abstract class RedisTemplate implements Closeable {
      *
      * @param jedis
      */
-    private void returnConnection(BinaryJedis jedis) {
+    private void returnConnection(Jedis jedis) {
         if (null != jedis) {
-            try {
-                getJedisPool().returnResource(jedis);
-            } catch (Exception e) {
-                getJedisPool().returnBrokenResource(jedis);
-            }
+            jedis.close();
         }
     }
 
@@ -138,9 +166,9 @@ public abstract class RedisTemplate implements Closeable {
      *
      * @param jedis
      */
-    private void returnBorkenConnection(BinaryJedis jedis) {
+    private void returnBorkenConnection(Jedis jedis) {
         if (null != jedis) {
-            getJedisPool().returnBrokenResource(jedis);
+            jedis.close();
         }
     }
 
@@ -180,7 +208,7 @@ public abstract class RedisTemplate implements Closeable {
                     int errorTimes = 0;
                     for (int i = 0; i < 3 && !stopping; i++) {
                         try {
-                            BinaryJedis jedis = getJedisPool().getResource();
+                            Jedis jedis = getJedisPool().getResource();
                             if (jedis == null) {
                                 errorTimes++;
                                 continue;
@@ -212,7 +240,7 @@ public abstract class RedisTemplate implements Closeable {
                             logger.info("redis[{}] 服务器恢复正常", getServerName());
                         }
                         serverDown = false;
-                        BinaryJedis jedis = getJedisPool().getResource();
+                        Jedis jedis = getJedisPool().getResource();
                         logger.info("redis[{}] 当前记录数：{}", getServerName(), jedis.dbSize());
                         returnConnection(jedis);
                     }

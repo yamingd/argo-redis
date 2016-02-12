@@ -1,6 +1,6 @@
 package com.argo.redis;
 
-import redis.clients.jedis.BinaryJedis;
+import redis.clients.jedis.Jedis;
 
 public interface RedisCommand<T> {
 	/**
@@ -9,5 +9,5 @@ public interface RedisCommand<T> {
 	 * @return T
 	 * @throws Exception
 	 */
-	T execute(final BinaryJedis conn)throws Exception;
+	T execute(final Jedis conn)throws Exception;
 }

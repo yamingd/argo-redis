@@ -7,8 +7,8 @@ public class RedisConfigTest {
 
     @org.junit.Test
     public void testLoad() throws Exception {
-//        RedisConfig.load();
-//        System.out.println(RedisConfig.instance.toString());
+        RedisConfig.load("redis-test2.yaml");
+        System.out.println(RedisConfig.instance.toString());
     }
 
     @org.junit.Test

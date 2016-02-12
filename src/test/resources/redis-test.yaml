@@ -5,3 +5,9 @@ host: 127.0.0.1
 port: 6379
 testOnBorrow: true
 testWhileIdle: true
+sentinel:
+  enabled: false
+  master: mymaster
+  hosts:
+    - 127.0.0.1:63790
+    - 127.0.0.1:63791

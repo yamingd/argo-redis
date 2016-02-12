@@ -4,20 +4,46 @@ import com.argo.yaml.YamlTemplate;
 import com.google.common.base.MoreObjects;
 
 import java.io.IOException;
+import java.util.List;
 
 public class RedisConfig {
 
-    private static final String confName = "redis.yaml";
+    private static final String defaultConfName = "redis.yaml";
 
     public static RedisConfig instance = null;
 
+    public static class Sentinel{
+        public boolean enabled = false;
+        public String master = null;
+        public List<String> hosts = null;
+
+        @Override
+        public String toString() {
+            return "Sentinel{" +
+                    "enabled=" + enabled +
+                    ", master='" + master + '\'' +
+                    ", hosts=" + hosts +
+                    '}';
+        }
+    }
+
+    /**
+     *
+     * @throws IOException
+     */
+    public synchronized static void load() throws IOException {
+        load(defaultConfName);
+    }
     /**
      * 加载配置信息
      * @throws IOException
      */
-    public synchronized static void load() throws IOException {
+    public synchronized static void load(String confName) throws IOException {
         if (instance != null){
             return;
+        }
+        if (null == confName){
+            confName = defaultConfName;
         }
         RedisConfig.instance = YamlTemplate.load(RedisConfig.class, confName);
     }
@@ -29,6 +55,7 @@ public class RedisConfig {
     private Integer port;
     private Boolean testOnBorrow = true;
     private Boolean testWhileIdle = true;
+    private Sentinel sentinel;
 
     public Integer getMaxActive() {
         return maxActive;
@@ -86,6 +113,14 @@ public class RedisConfig {
         this.testWhileIdle = testWhileIdle;
     }
 
+    public Sentinel getSentinel() {
+        return sentinel;
+    }
+
+    public void setSentinel(Sentinel sentinel) {
+        this.sentinel = sentinel;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -96,6 +131,7 @@ public class RedisConfig {
                 .add("port", port)
                 .add("testOnBorrow", testOnBorrow)
                 .add("testWhileIdle", testWhileIdle)
+                .add("sentinel", sentinel)
                 .toString();
     }
 }
