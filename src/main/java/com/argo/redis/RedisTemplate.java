@@ -19,7 +19,6 @@ public abstract class RedisTemplate implements Closeable {
 
     protected Logger logger = null;
 
-    private String serverName = null;
     private boolean ALIVE = true;
     private boolean serverDown = false;
 
@@ -179,7 +178,7 @@ public abstract class RedisTemplate implements Closeable {
     private class MonitorThread extends Thread {
         @Override
         public void run() {
-            int sleepTime = 30000;
+            int sleepTime = redisConfig.getAliveCheck() * 1000;
             int baseSleepTime = 1000;
             while (!stopping) {
 
@@ -236,7 +235,7 @@ public abstract class RedisTemplate implements Closeable {
                         if (ALIVE == false) {
                             ALIVE = true;
                             // 修改休眠时间为30秒，服务恢复
-                            sleepTime = 30000;
+                            sleepTime = redisConfig.getAliveCheck() * 1000;
                             logger.info("redis[{}] 服务器恢复正常", getServerName());
                         }
                         serverDown = false;

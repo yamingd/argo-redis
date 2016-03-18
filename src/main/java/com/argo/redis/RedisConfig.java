@@ -56,6 +56,7 @@ public class RedisConfig {
     private Boolean testOnBorrow = true;
     private Boolean testWhileIdle = true;
     private Sentinel sentinel;
+    private Integer aliveCheck = 30; // 30s
 
     public Integer getMaxActive() {
         return maxActive;
@@ -119,6 +120,14 @@ public class RedisConfig {
 
     public void setSentinel(Sentinel sentinel) {
         this.sentinel = sentinel;
+    }
+
+    public Integer getAliveCheck() {
+        return aliveCheck;
+    }
+
+    public void setAliveCheck(Integer aliveCheck) {
+        this.aliveCheck = aliveCheck;
     }
 
     @Override
