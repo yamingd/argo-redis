@@ -1,1321 +1,788 @@
 package com.argo.redis;
 
-import redis.clients.jedis.*;
-import redis.clients.util.SafeEncoder;
+import redis.clients.jedis.Tuple;
 
-import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-@SuppressWarnings("ALL")
-public class RedisBuket extends RedisTemplate {
-
-    static RedisBuket redisBuket = null;
-
-    public RedisBuket() throws Exception {
-    }
-
-    public synchronized static RedisBuket getInstance() throws Exception {
-        if (redisBuket == null){
-            redisBuket = new RedisBuket();
-        }
-
-        return redisBuket;
-    }
-
-    public List<String> fromBytes(List<byte[]> lbs) throws UnsupportedEncodingException {
-        List<String> ret = new ArrayList<String>();
-        if (lbs == null){
-            return ret;
-        }
-        for (byte[] bs : lbs){
-            if (bs != null) {
-                ret.add(new String(bs, Protocol.CHARSET));
-            }
-        }
-        return ret;
-    }
-
+/**
+ * Created by dengyaming on 4/10/16.
+ */
+public interface RedisBuket {
     /**
-     * multi get
-     * @param keys 读取的keys
-     * @return List 返回列表
+     * 把byte[]转化为String
+     * @param lbs byte[]数组
+     * @return
      */
-    public List<String> mget(final String... keys){
-		return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-                List<byte[]> bytes = conn.mget(SafeEncoder.encodeMany(keys));
-                List<String> ret = new ArrayList<String>();
-                for (byte[] item : bytes){
-                    if (item != null) {
-                        ret.add(SafeEncoder.encode(item));
-                    }
-                }
-                return ret;
-			}
-		});
-	}
+    List<String> fromBytes(List<byte[]> lbs);
 
     /**
-     * Get Object List
-     * @param clazz 目标类型
-     * @param keys 读取的keys
-     * @param <T> 目标类型
-     * @return List 列表, 若key不存在，则返回null
+     * 把byte[]转化为String
+     * @param lbs byte[]数组
+     * @return
      */
-    public <T> List<T> mget(final Class<T> clazz, final String... keys){
-        return this.execute(new RedisCommand<List<T>>(){
-            public List<T> execute(final Jedis conn) throws Exception {
-                List<byte[]> bytes = conn.mget(SafeEncoder.encodeMany(keys));
-                List<T> ret = new ArrayList<T>();
-                for (byte[] item : bytes){
-                    if (item != null) {
-                        ret.add(messagePack.read(item, clazz));
-                    }else{
-                        ret.add(null);
-                    }
-                }
-                return ret;
-            }
-        });
-    }
+    Set<String> fromBytes(Set<byte[]> lbs);
 
     /**
-     * get single key
+     * 把byte[]转化为类实例
+     * @param clazz
+     * @param lbs
+     * @param <T>
+     * @return
+     */
+    <T> List<T> fromBytes(Class<T> clazz, List<byte[]> lbs);
+
+    /**
+     * 批量获取, 返回String数组
+     * @param keys 缓存keys
+     * @return List
+     */
+    List<String> mget(String... keys);
+
+    /**
+     * 批量获取, 返回类实例数组
+     * @param clazz 类型
+     * @param keys 缓存keys
+     * @param <T> 返回类型
+     * @return List
+     */
+    <T> List<T> mget(Class<T> clazz, String... keys);
+
+    /**
+     * 获取某Key的缓存字符串
      * @param key 缓存key
-     * @return String 缓存的字符串
+     * @return String
      */
-	public String get(final String key){
-		return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				byte[] bytes = conn.get(SafeEncoder.encode(key));
-                if (bytes == null){
-                    return null;
-                }
-                return SafeEncoder.encode(bytes);
-			}
-		});
-	}
+    String get(String key);
 
     /**
-     * Get Object
-     * @param clazz 目标类型
+     * 获取某Key的缓存类实例
+     * @param clazz 类型
      * @param key 缓存key
-     * @param <T> 目标类型
-     * @return T 目标实例
+     * @param <T> 类型
+     * @return T
      */
-    public <T> T get(final Class<T> clazz, final String key){
-        return this.execute(new RedisCommand<T>(){
-            public T execute(final Jedis conn) throws Exception {
-                byte[] bytes = conn.get(SafeEncoder.encode(key));
-                if (bytes == null){
-                    return null;
-                }
-                return messagePack.read(bytes, clazz);
-            }
-        });
-    }
+    <T> T get(Class<T> clazz, String key);
 
     /**
-     *
+     * 用key-value 缓存数据
      * @param key 缓存key
-     * @param value 缓存数据
-     * @param <T> 缓存数据类型
-     * @return String 结果
-     */
-    public <T> String set(final String key, final T value){
-        return this.execute(new RedisCommand<String>(){
-            public String execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
-                return conn.set(SafeEncoder.encode(key), ds);
-            }
-        });
-    }
-
-    /**
-     *
-     * @param keys 缓存key
-     * @param values 缓存数据，和keys保持一致
-     * @param <T> 目标类型
-     * @return boolean 缓存成功标志
-     */
-    public <T> boolean set(final List<String> keys, final List<T> values){
-        return this.execute(new RedisCommand<Boolean>(){
-            public Boolean execute(final Jedis conn) throws Exception {
-                for (int i = 0; i < keys.size(); i++) {
-                    byte[] ds = messagePack.write(values.get(i));
-                    conn.set(SafeEncoder.encode(keys.get(i)), ds);
-                }
-                return true;
-            }
-        });
-    }
-
-    /**
-     * GETSET
-     * @param key 缓存key
-     * @param value 缓存字符串
-     * @return String 返回上一个版本的数据，如果有的话，否则返回null
-     */
-	public String getSet(final String key, final String value){
-		return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				byte[] ret = conn.getSet(SafeEncoder.encode(key), SafeEncoder.encode(value));
-                if (ret == null){
-                    return null;
-                }
-                return SafeEncoder.encode(ret);
-			}
-		});
-	}
-
-    public <T> T getSet(final Class<T> clazz, final String key, final T value){
-        return this.execute(new RedisCommand<T>(){
-            public T execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
-                byte[] ret = conn.getSet(SafeEncoder.encode(key), ds);
-                if (ret == null){
-                    return null;
-                }
-                return messagePack.read(ret, clazz);
-            }
-        });
-    }
-
-    public Long setnx(final String key, final String value){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.setnx(SafeEncoder.encode(key), SafeEncoder.encode(value));
-			}
-		});
-    }
-
-    public <T> Long setnx(final String key, final T value){
-        return this.execute(new RedisCommand<Long>(){
-            public Long execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
-                return conn.setnx(SafeEncoder.encode(key), ds);
-            }
-        });
-    }
-
-    /**
-     * 相当于Set+Expire命令组合.
-     * @param key 缓存key
-     * @param seconds 过期时间(秒)
-     * @param value 缓存数据
-     * @return String 缓存操作状态
-     */
-    public String setex(final String key, final int seconds, final String value){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				return conn.setex(SafeEncoder.encode(key), seconds, SafeEncoder.encode(value));
-			}
-		});
-    }
-
-    /**
-     *
-     * @param key 缓存key
-     * @param seconds 过期时间(秒)
-     * @param value 缓存数据
+     * @param value 缓存value
      * @param <T> 数据类型
-     * @return String 缓存操作状态
+     * @return 操作结果代码
      */
-    public <T> String setex(final String key, final int seconds, final T value){
-        return this.execute(new RedisCommand<String>(){
-            public String execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
-                return conn.setex(SafeEncoder.encode(key), seconds, ds);
-            }
-        });
-    }
-
-	/**
-	 * 设置过期时间.
-	 * @param key 缓存Key.
-	 * @param timeout 缓存时长.
-	 * @return 返回设置的timeout
-	 */
-	public long expire(final String key, final int timeout){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.expire(SafeEncoder.encode(key), timeout);
-			}
-		});
-	}
-	
-	/**
-	 * 检查Key是否存在.
-	 * @param key 缓存Key.
-	 * @return 返回true or false.
-	 */
-	public boolean exists(final String key){
-		return this.execute(new RedisCommand<Boolean>(){
-			public Boolean execute(final Jedis conn) throws Exception {
-				return conn.exists(SafeEncoder.encode(key));
-			}
-		});
-	}
-	/**
-	 * 删除Key
-	 * @param keys 缓存keys
-	 * @return boolean 缓存操作状态
-	 */
-	public boolean delete(final String... keys){
-		return this.execute(new RedisCommand<Boolean>(){
-			public Boolean execute(final Jedis conn) throws Exception {
-				return conn.del(SafeEncoder.encodeMany(keys)) > 0;
-			}
-		});
-	}
-	/**
-	 * 自增
-	 * @param key 缓存key
-	 * @param amount 自增量
-	 * @return long 返回结果数值
-	 */
-	public long incr(final String key, final Integer amount){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.incrBy(SafeEncoder.encode(key), amount);
-			}
-		});
-	}
-	/**
-	 * 自减
-	 * @param key 缓存key
-	 * @param amount 减少的量
-	 * @return long 返回结果数值
-	 */
-	public long decr(final String key, final Integer amount){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.decrBy(SafeEncoder.encode(key), amount);
-			}
-		});
-	}
-	/**
-	 * HashMap自增
-	 * @param key 缓存key
-	 * @param amount 自增量
-	 * @return long 返回结果数值
-	 */
-	public long hincr(final String key, final String field, final Integer amount){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.hincrBy(SafeEncoder.encode(key), SafeEncoder.encode(field), amount);
-			}
-		});
-	}
-	/**
-	 * HashMap自增.
-	 * @param key 缓存key
-	 * @param nums 自增量
-	 * @return long 返回1L
-	 */
-	public long hincr(final String key, final Map<String, Integer> nums){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				Pipeline pipe = conn.pipelined();
-                byte[] bk = SafeEncoder.encode(key);
-				for(String field : nums.keySet()){
-					pipe.hincrBy(bk, SafeEncoder.encode(field), nums.get(field));
-				}
-				pipe.exec();
-				return 1L;
-			}
-		});
-	}
-	/**
-	 * HashMap自减
-	 * @param key 缓存key
-	 * @param amount 自减量
-	 * @return long 返回结果值
-	 */
-	public long hdecr(final String key, final String field, final Integer amount){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.hincrBy(SafeEncoder.encode(key), SafeEncoder.encode(field), -1 * amount);
-			}
-		});
-	}
-	/**
-	 * HashMap自增.
-	 * @param key 缓存key
-	 * @param nums 自减量
-	 * @return long 返回结果值
-	 */
-	public long hdecr(final String key, final Map<String, Integer> nums){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-				Pipeline pipe = conn.pipelined();
-				for(String field : nums.keySet()){
-					pipe.hincrBy(bk, SafeEncoder.encode(field), -1 * nums.get(field));
-				}
-				pipe.exec();
-				return 1L;
-			}
-		});
-	}
-	/**
-	 * 返回HashMap的K-V值.
-	 * @param key 缓存key
-	 * @return Map 返回HashMap
-	 */
-	public Map<String, Integer> hall(final String key){
-		return this.execute(new RedisCommand<Map<String, Integer>>(){
-			public Map<String, Integer> execute(final Jedis conn) throws Exception {
-                Map<byte[], byte[]> bs = conn.hgetAll(SafeEncoder.encode(key));
-                Map<String, Integer> vals = new HashMap<String, Integer>();
-                Iterator<byte[]> itor = bs.keySet().iterator();
-                while (itor.hasNext()){
-                    byte[] k = itor.next();
-                    byte[] data = bs.get(k);
-                    int v = data == null ? 0 : Integer.parseInt(SafeEncoder.encode(data));
-                    vals.put(SafeEncoder.encode(k), v);
-                }
-				return vals;
-			}
-		});
-	}
-	/**
-	 * 移除HashMap的Keys.
-	 * @param key 缓存key
-	 * @param fields 要移除的keys
-	 * @return boolean 操作状态
-	 */
-	public boolean hrem(final String key, final String... fields){
-		return this.execute(new RedisCommand<Boolean>(){
-			public Boolean execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-				return conn.hdel(bk, SafeEncoder.encodeMany(fields)) > 0;
-			}
-		});
-	}
-	/**
-	 * HashMap重置.
-	 * @param key
-	 * @param nums
-	 * @return long
-	 */
-	public long hset(final String key, final Map<String, Integer> nums){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-				Pipeline pipe = conn.pipelined();
-				for(String field : nums.keySet()){
-					pipe.hset(bk, SafeEncoder.encode(field), SafeEncoder.encode(String.valueOf(nums.get(field))));
-				}
-				pipe.exec();
-				return 1L;
-			}
-		});
-	}
-	
-	/**
-	 * 从队列右边写入值.
-	 * @param key
-	 * @param values
-	 * @return long
-	 */
-	public Long rpush(final String key, final String... values){
-		return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.rpush(SafeEncoder.encode(key), SafeEncoder.encodeMany(values));
-			}
-		});
-	}
-
-    public <T> Long rpush(final Class<T> clazz, final String key, final T... values){
-        return this.execute(new RedisCommand<Long>(){
-            public Long execute(final Jedis conn) throws Exception {
-                byte[][] bytes = new byte[values.length][];
-                for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
-                }
-                return conn.rpush(SafeEncoder.encode(key), bytes);
-            }
-        });
-    }
+    <T> String set(String key, T value);
 
     /**
-     * 从队列左边写入值.
+     * 批量缓存数据
+     * @param keys 缓存keys
+     * @param values 缓存values
+     * @param <T> 数据类型
+     * @return true or false
+     */
+    <T> boolean set(List<String> keys, List<T> values);
+
+    /**
+     * 缓存某key的值, 并返回旧的值
+     * @param key 缓存key
+     * @param value 新值
+     * @return String 旧值
+     */
+    String getSet(String key, String value);
+
+    /**
+     * 缓存某Key的值, 并返回旧的值
+     * @param clazz 数据类型
+     * @param key 缓存key
+     * @param value 缓存值
+     * @param <T> 类型
+     * @return T 旧数据
+     */
+    <T> T getSet(Class<T> clazz, String key, T value);
+
+    /**
+     * 缓存某Key的值, 仅且在Key不存在的情况下
+     * @param key 缓存key
+     * @param value 缓存数据
+     * @return Long
+     */
+    Long setnx(String key, String value);
+
+    /**
+     * 缓存某Key的值, 仅且在Key不存在的情况下
+     * @param key 缓存Key
+     * @param value 数据
+     * @param <T> 数据类型
+     * @return Long
+     */
+    <T> Long setnx(String key, T value);
+
+    /**
+     * 缓存某Key的数据, 同时设置过期时间秒数
+     * @param key 缓存Key
+     * @param seconds 过期秒数
+     * @param value 数据
+     * @return String
+     */
+    String setex(String key, int seconds, String value);
+
+    /**
+     * 缓存某Key的数据, 同时设置过期时间秒数
+     * @param key 缓存Key
+     * @param seconds 过期秒数
+     * @param value 数据
+     * @param <T> 数据类型
+     * @return String
+     */
+    <T> String setex(String key, int seconds, T value);
+
+    /**
+     * 设置某Key的过期秒数
+     * @param key 缓存Key
+     * @param timeout 过期秒数
+     * @return long
+     */
+    long expire(String key, int timeout);
+
+    /**
+     * 判断某Key是否存在
+     * @param key 缓存Key
+     * @return true or false
+     */
+    boolean exists(String key);
+
+    /**
+     * 删除缓存Key的数据
+     * @param keys 缓存key
+     * @return true or false
+     */
+    boolean delete(String... keys);
+
+    /**
+     * 递增某Key的Value(int, long型)
+     * @param key 缓存key
+     * @param amount 偏移量
+     * @return long 新值
+     */
+    long incr(String key, Integer amount);
+
+    /**
+     * 递减某Key的Value(int, long型)
+     * @param key 缓存key
+     * @param amount 偏移量
+     * @return long 新值
+     */
+    long decr(String key, Integer amount);
+
+    /**
+     * 递增HASH表里的某Key的Value
+     * @param key 缓存Key
+     * @param field HASH表字段名
+     * @param amount 偏移量
+     * @return long 新值
+     */
+    long hincr(String key, String field, Integer amount);
+
+    /**
+     * 递减HASH表里的某Key的Value
+     * @param key 缓存Key
+     * @param nums HASH表值
+     * @return long
+     */
+    long hincr(String key, Map<String, Integer> nums);
+
+    /**
+     * 递减HASH表里的某Key的Value
+     * @param key 缓存Key
+     * @param field HASH表字段名
+     * @param amount 偏移量
+     * @return long
+     */
+    long hdecr(String key, String field, Integer amount);
+
+    /**
+     * 递减HASH表里的某Key的Value
+     * @param key 缓存Key
+     * @param nums HASH表值
+     * @return long
+     */
+    long hdecr(String key, Map<String, Integer> nums);
+
+    /**
+     * 根据Key获取HASH表的数据
+     * @param key 缓存Key
+     * @return Map
+     */
+    Map<String, Integer> hall(String key);
+
+    /**
+     * 删除某HASH表的字段
+     * @param key 缓存Key
+     * @param fields 字段名
+     * @return true or false
+     */
+    boolean hrem(String key, String... fields);
+
+    /**
+     * 设置缓存Key的HASH表数据
+     * @param key 缓存Key
+     * @param nums HASH表数据
+     * @return long
+     */
+    long hset(String key, Map<String, Integer> nums);
+
+    /**
+     * 从List尾部添加数据
+     * @param key 缓存Key
+     * @param values 数据
+     * @return Long
+     */
+    Long rpush(String key, String... values);
+
+    /**
+     * 从List尾部添加数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param values 数据
+     * @param <T> 数据类型
+     * @return Long
+     */
+    <T> Long rpush(Class<T> clazz, String key, T... values);
+
+    /**
+     * 从List头部添加数据
+     * @param key 缓存Key
+     * @param values 数据
+     * @return Long
+     */
+    Long lpush(String key, String... values);
+
+    /**
+     * 从List头部添加数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param values 数据
+     * @param <T> 数据类型
+     * @return Long
+     */
+    <T> Long lpush(Class<T> clazz, String key, T... values);
+
+    /**
+     * 计算List长度
+     * @param key 缓存Key
+     * @return 长度
+     */
+    Long llen(String key);
+
+    /**
+     * 从List按分页取出数据
+     * @param key 缓存Key
+     * @param page 页码(从1开始)
+     * @param limit 每次取出的数据个数
+     * @return List
+     */
+    List<String> lrange(String key, int page, int limit);
+
+    /**
+     * 从List按分页取出数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param page 页码(从1开始)
+     * @param limit 每次取出的数据个数
+     * @param <T> 数据类型
+     * @return List
+     */
+    <T> List<T> lrange(Class<T> clazz, String key, int page, int limit);
+
+    /**
+     * 从List中移除数据, 仅保留[start, end]区间的数据
+     * @param key 缓存key
+     * @param start 区间开始, 从0开始
+     * @param end 结束
+     * @return String
+     */
+    String ltrim(String key, int start, int end);
+
+    /**
+     * 从List中取出第i个数据
+     * @param key 缓存key
+     * @param index 数据位置, 从0开始
+     * @return String
+     */
+    String lindex(String key, int index);
+
+    /**
+     * 从List中取出第i个数据
+     * @param clazz 数据类型
+     * @param key 缓存key
+     * @param index 数据位置, 从0开始
+     * @param <T> 数据类型
+     * @return T
+     */
+    <T> T lindex(Class<T> clazz, String key, int index);
+
+    /**
+     * 在List中设置第i个数据
+     * @param key 缓存key
+     * @param index 数据位置, 从0开始
+     * @param value 数据
+     * @return 操作状态码
+     */
+    String lset(String key, int index, String value);
+
+    /**
+     * 在List中设置第i个数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param index 数据位置, 从0开始
+     * @param value 数据
+     * @param <T>
+     * @return 操作状态码
+     */
+    <T> String lset(Class<T> clazz, String key, int index, T value);
+
+    /**
+     * 从List中删除数据
+     * @param key 缓存key
+     * @param value 数据
+     * @return Long
+     */
+    Long lrem(String key, String value);
+
+    /**
+     * 从List中删除数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param value 数据
+     * @param <T>
+     * @return Long
+     */
+    <T> Long lrem(Class<T> clazz, String key, T value);
+
+    /**
+     * 从List的头部取出数据, 并从List中移除该数据
+     * @param key 缓存key
+     * @return String
+     */
+    String lpop(String key);
+
+    /**
+     * 从List的头部取出数据, 并从List中移除该数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param <T>
+     * @return T
+     */
+    <T> T lpop(Class<T> clazz, String key);
+
+    /**
+     * 从List的头部取出数据, 并从List中移除该数据
+     * @param key 数据类型
+     * @param limit 取出的数据的个数
+     * @return List
+     */
+    List<String> lpop(String key, int limit);
+
+    /**
+     * 从List的头部取出数据, 并从List中移除该数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param limit 取出的数据的个数
+     * @param <T>
+     * @return List
+     */
+    <T> List<T> lpop(Class<T> clazz, String key, int limit);
+
+    /**
+     * 从List的尾部取出数据, 并从List中移除该数据
+     * @param key 缓存key
+     * @return String
+     */
+    String rpop(String key);
+
+    /**
+     * 从List的尾部取出数据, 并从List中移除该数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param <T>
+     * @return T
+     */
+    <T> T rpop(Class<T> clazz, String key);
+
+    /**
+     * 从List的尾部取出数据, 并从List中移除该数据
+     * @param key 缓存Key
+     * @param limit 取出的数据的个数
+     * @return List
+     */
+    List<String> rpop(String key, int limit);
+
+    /**
+     * 从List的尾部取出数据, 并从List中移除该数据
+     * @param clazz 数据类型
+     * @param key 缓存Key
+     * @param limit 取出的数据的个数
+     * @param <T>
+     * @return List
+     */
+    <T> List<T> rpop(Class<T> clazz, String key, int limit);
+
+    /**
+     * 对List中的数据(int, long, float, double类型)排序(升序)
+     * @param key 缓存key
+     * @return List
+     */
+    List<String> lsort(String key);
+
+    /**
+     *
      * @param key
      * @param values
-     * @return long
+     * @return
      */
-    public Long lpush(final String key, final String... values){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-                return conn.lpush(SafeEncoder.encode(key), SafeEncoder.encodeMany(values));
-			}
-		});
-    }
-
-    public <T> Long lpush(final Class<T> clazz, final String key, final T... values){
-        return this.execute(new RedisCommand<Long>(){
-            public Long execute(final Jedis conn) throws Exception {
-                byte[][] bytes = new byte[values.length][];
-                for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
-                }
-                return conn.lpush(SafeEncoder.encode(key), bytes);
-            }
-        });
-    }
+    Long lpushx(String key, String... values);
 
     /**
-     * 计算队列的长度.
+     *
+     * @param clazz
      * @param key
-     * @return long
+     * @param values
+     * @param <T>
+     * @return
      */
-    public Long llen(final String key){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.llen(SafeEncoder.encode(key));
-			}
-		});
-    }
+    <T> Long lpushx(Class<T> clazz, String key, T... values);
 
     /**
-     * 分页获取队列的元素.
+     *
+     * @param key
+     * @param values
+     * @return
+     */
+    Long rpushx(String key, String... values);
+
+    /**
+     *
+     * @param clazz
+     * @param key
+     * @param values
+     * @param <T>
+     * @return
+     */
+    <T> Long rpushx(Class<T> clazz, String key, T... values);
+
+    /**
+     * 从List的头部取出数据, 调用会等待到List中有数据
+     * @param timeout 等待时间(秒)
+     * @param keys 缓存Keys
+     * @return List
+     */
+    List<String> blpop(int timeout, String... keys);
+
+    /**
+     * 从List的头部取出数据, 调用会等待到List中有数据
+     * @param clazz 数据类型
+     * @param timeout 等待时间(秒)
+     * @param keys 缓存Keys
+     * @param <T>
+     * @return List
+     */
+    <T> List<T> blpop(Class<T> clazz, int timeout, String... keys);
+
+    /**
+     * 从List的尾部取出数据, 调用会等待到List中有数据
+     * @param timeout 等待时间(秒)
+     * @param keys 缓存Keys
+     * @return List
+     */
+    List<String> brpop(int timeout, String... keys);
+
+    /**
+     * 从List的头部取出数据, 调用会等待到List中有数据
+     * @param clazz 数据类型
+     * @param timeout 等待时间(秒)
+     * @param keys 缓存Keys
+     * @param <T>
+     * @return List
+     */
+    <T> List<T> brpop(Class<T> clazz, int timeout, String... keys);
+
+    /**
+     * 往SET里添加数据
+     * @param key 缓存Keys
+     * @param members 数据
+     * @return Long
+     */
+    Long sadd(String key, String... members);
+
+    /**
+     * 往SET里添加数据
+     * @param key 缓存Keys
+     * @param members 数据
+     * @return Long
+     */
+    Long sadd(String key, List<?> members);
+
+    /**
+     * 读取SET结构的数据
      * @param key 缓存Key
-     * @param page 页码
-     * @param limit 每页记录数.
-     * @return List
-     */
-    public List<String> lrange(final String key, final int page, final int limit){
-    	return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-				long start = (page - 1) * limit;
-				long end = start + limit;
-				List<byte[]> ls = conn.lrange(SafeEncoder.encode(key), start, end);
-                List<String> ret = new ArrayList<String>();
-                for (byte[] b : ls){
-                    if (b != null) {
-                        ret.add(SafeEncoder.encode(b));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-
-    public <T> List<T> lrange(final Class<T> clazz, final String key, final int page, final int limit){
-        return this.execute(new RedisCommand<List<T>>(){
-            public List<T> execute(final Jedis conn) throws Exception {
-                long start = (page - 1) * limit;
-                long end = start + limit;
-                List<byte[]> ls = conn.lrange(SafeEncoder.encode(key), start, end);
-                List<T> ret = new ArrayList<T>();
-                for (byte[] b : ls){
-                    if (b != null) {
-                        ret.add(messagePack.read(b, clazz));
-                    }
-                }
-                return ret;
-            }
-        });
-    }
-
-    /**
-     * 清除[start,end)外的元素.
-     * @param key
-     * @param start
-     * @param end
-     * @return String
-     */
-    public String ltrim(final String key, final int start, final int end){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				return conn.ltrim(SafeEncoder.encode(key), start, end);
-			}
-		});
-    }
-
-    /**
-     * 返回第index的元素.
-     * @param key
-     * @param index
-     * @return String
-     */
-    public String lindex(final String key, final int index){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				byte[] bs = conn.lindex(SafeEncoder.encode(key), index);
-                if (bs == null){
-                    return null;
-                }
-                return new String(bs);
-			}
-		});
-    }
-
-    public <T> T lindex(final Class<T> clazz, final String key, final int index){
-        return this.execute(new RedisCommand<T>(){
-            public T execute(final Jedis conn) throws Exception {
-                byte[] bs = conn.lindex(SafeEncoder.encode(key), index);
-                if (bs == null){
-                    return null;
-                }
-                return messagePack.read(bs, clazz);
-            }
-        });
-    }
-
-    /**
-     * 重置第index的元素值.
-     * @param key
-     * @param index
-     * @param value
-     * @return String
-     */
-    public String lset(final String key, final int index, final String value){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				return conn.lset(SafeEncoder.encode(key), index, SafeEncoder.encode(value));
-			}
-		});
-    }
-
-    public <T> String lset(final Class<T> clazz, final String key, final int index, final T value){
-        return this.execute(new RedisCommand<String>(){
-            public String execute(final Jedis conn) throws Exception {
-                byte[] bytes = messagePack.write(value);
-                return conn.lset(SafeEncoder.encode(key), index, bytes);
-            }
-        });
-    }
-
-    /**
-     * 删除List的某个元素.
-     * @param key
-     * @param value
-     * @return Long
-     */
-    public Long lrem(final String key, final String value){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.lrem(SafeEncoder.encode(key), 0, SafeEncoder.encode(value));
-			}
-		});
-    }
-
-    public <T> Long lrem(final Class<T> clazz, final String key, final T value){
-        return this.execute(new RedisCommand<Long>(){
-            public Long execute(final Jedis conn) throws Exception {
-                byte[] bytes = messagePack.write(value);
-                return conn.lrem(SafeEncoder.encode(key), 0, bytes);
-            }
-        });
-    }
-
-    /**
-     * 从List左边取出元素.(FIFO)
-     * @param key
-     * @return String
-     */
-    public String lpop(final String key){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				byte[] bs = conn.lpop(SafeEncoder.encode(key));
-                if (bs == null){
-                    return null;
-                }
-                return SafeEncoder.encode(bs);
-			}
-		});
-    }
-    public <T> T lpop(final Class<T> clazz, final String key){
-        return this.execute(new RedisCommand<T>(){
-            public T execute(final Jedis conn) throws Exception {
-                byte[] bs = conn.lpop(SafeEncoder.encode(key));
-                if (bs == null){
-                    return null;
-                }
-                return messagePack.read(bs, clazz);
-            }
-        });
-    }
-
-    public List<String> lpop(final String key, final int limit){
-        return this.execute(new RedisCommand<List<String>>(){
-            public List<String> execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-                List<String> resp = new ArrayList<String>();
-                for (int i = 0; i < limit; i++) {
-                    byte[] bs = conn.lpop(bk);
-                    if (bs != null){
-                        resp.add(SafeEncoder.encode(bs));
-                    }
-
-                }
-                return resp;
-            }
-        });
-    }
-
-    public <T> List<T> lpop(final Class<T> clazz, final String key, final int limit){
-        return this.execute(new RedisCommand<List<T>>(){
-            public List<T> execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-                List<T> resp = new ArrayList<T>();
-                for (int i = 0; i < limit; i++) {
-                    byte[] bs = conn.lpop(bk);
-                    if (bs != null){
-                        resp.add(messagePack.read(bs, clazz));
-                    }
-
-                }
-                return resp;
-            }
-        });
-    }
-
-    /**
-     * 从List右边取出元素.(LIFO)
-     * @param key
-     * @return String
-     */
-    public String rpop(final String key){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				byte[] bs = conn.rpop(SafeEncoder.encode(key));
-                if (bs == null){
-                    return null;
-                }
-                return SafeEncoder.encode(bs);
-			}
-		});
-    }
-
-    public <T> T rpop(final Class<T> clazz, final String key){
-        return this.execute(new RedisCommand<T>(){
-            public T execute(final Jedis conn) throws Exception {
-                byte[] bs = conn.rpop(SafeEncoder.encode(key));
-                if (bs == null){
-                    return null;
-                }
-                return messagePack.read(bs, clazz);
-            }
-        });
-    }
-
-    public List<String> rpop(final String key, final int limit){
-        return this.execute(new RedisCommand<List<String>>(){
-            public List<String> execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-                List<String> resp = new ArrayList<String>();
-                for (int i = 0; i < limit; i++) {
-                    byte[] bs = conn.rpop(bk);
-                    if (bs != null){
-                        resp.add(SafeEncoder.encode(bs));
-                    }
-
-                }
-                return resp;
-            }
-        });
-    }
-
-    public <T> List<T> rpop(final Class<T> clazz, final String key, final int limit){
-        return this.execute(new RedisCommand<List<T>>(){
-            public List<T> execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-                List<T> resp = new ArrayList<T>();
-                for (int i = 0; i < limit; i++) {
-                    byte[] bs = conn.rpop(bk);
-                    if (bs != null){
-                        resp.add(messagePack.read(bs, clazz));
-                    }
-
-                }
-                return resp;
-            }
-        });
-    }
-
-    /**
-     * 将List中的元素排序.
-     * @param key
-     * @return List
-     */
-    public List<String> lsort(final String key){
-    	return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-				List<byte[]> lbs = conn.sort(SafeEncoder.encode(key));
-                List<String> ret = new ArrayList<String>();
-                for (byte[] b : lbs){
-                    if (b != null) {
-                        ret.add(SafeEncoder.encode(b));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-    
-    public Long lpushx(final String key, final String... values){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.lpushx(SafeEncoder.encode(key), SafeEncoder.encodeMany(values));
-			}
-		});
-    }
-
-    public <T> Long lpushx(final Class<T> clazz, final String key, final T... values){
-        return this.execute(new RedisCommand<Long>(){
-            public Long execute(final Jedis conn) throws Exception {
-                byte[][] bytes = new byte[values.length][];
-                for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
-                }
-                return conn.lpushx(SafeEncoder.encode(key), bytes);
-            }
-        });
-    }
-
-    public Long rpushx(final String key, final String... values){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.rpushx(SafeEncoder.encode(key), SafeEncoder.encodeMany(values));
-			}
-		});
-    }
-
-    public <T> Long rpushx(final Class<T> clazz, final String key, final T... values){
-        return this.execute(new RedisCommand<Long>(){
-            public Long execute(final Jedis conn) throws Exception {
-                byte[][] bytes = new byte[values.length][];
-                for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
-                }
-                return conn.rpushx(SafeEncoder.encode(key), bytes);
-            }
-        });
-    }
-
-    public List<String> blpop(final int timeout, final String... keys){
-    	return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-				List<byte[]> bs = conn.blpop(timeout, SafeEncoder.encodeMany(keys));
-                return fromBytes(bs);
-			}
-		});
-    }
-
-    public <T> List<T> blpop(final Class<T> clazz, final int timeout, final String... keys){
-        return this.execute(new RedisCommand<List<T>>(){
-            public List<T> execute(final Jedis conn) throws Exception {
-                List<byte[]> bs = conn.blpop(timeout, SafeEncoder.encodeMany(keys));
-                List<T> ret = new ArrayList<T>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(messagePack.read(b, clazz));
-                    }
-                }
-                return ret;
-            }
-        });
-    }
-
-    public List<String> brpop(final int timeout, final String... keys){
-    	return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-				List<byte[]> bs = conn.brpop(timeout, SafeEncoder.encodeMany(keys));
-                return fromBytes(bs);
-			}
-		});
-    }
-
-    public <T> List<T> brpop(final Class<T> clazz, final int timeout, final String... keys){
-        return this.execute(new RedisCommand<List<T>>(){
-            public List<T> execute(final Jedis conn) throws Exception {
-                List<byte[]> bs = conn.brpop(timeout, SafeEncoder.encodeMany(keys));
-                List<T> ret = new ArrayList<T>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(messagePack.read(b, clazz));
-                    }
-                }
-                return ret;
-            }
-        });
-    }
-
-    /**
-     * 往Set结构中写入值.
-     * @param key
-     * @param members
-     * @return Long
-     */
-    public Long sadd(final String key, final String... members){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.sadd(SafeEncoder.encode(key), SafeEncoder.encodeMany(members));
-			}
-		});
-    }
-    
-    /**
-     * 往Set结构中写入值.
-     * @param key
-     * @param members
-     * @return Long
-     */
-    public Long sadd(final String key, final List<?> members){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-                byte[] bk = SafeEncoder.encode(key);
-				Pipeline pipe = conn.pipelined();
-				for(Object v : members){
-					pipe.sadd(bk, SafeEncoder.encode(String.valueOf(v)));
-				}
-				pipe.exec();
-				return 1L;
-			}
-		});
-    }
-    
-    /**
-     * 返回Set结构中的所有元素.
-     * @param key
      * @return Set
      */
-    public Set<String> smembers(final String key){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-				Set<byte[]> sk = conn.smembers(SafeEncoder.encode(key));
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : sk){
-                    if (b != null) {
-                        ret.add(SafeEncoder.encode(b));
-                    }
-                }
-                return ret;
-            }
-		});
-    }
+    Set<String> smembers(String key);
 
     /**
-     * 移除Set结构中的元素.
-     * @param key
-     * @param members
-     * @return long
+     * 在SET里移除数据
+     * @param key 缓存Key
+     * @param members 目标数据
+     * @return
      */
-    public Long srem(final String key, final String... members){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.srem(SafeEncoder.encode(key), SafeEncoder.encodeMany(members));
-			}
-		});
-    }
+    Long srem(String key, String... members);
 
     /**
-     * 随机移除Set中的元素.
-     * @param key
+     * 随机从SET里取出一个数据, 并从SET中移除
+     * @param key 缓存Key
      * @return String
      */
-    public String spop(final String key){
-    	return this.execute(new RedisCommand<String>(){
-			public String execute(final Jedis conn) throws Exception {
-				byte[] bytes = conn.spop(SafeEncoder.encode(key));
-                if (bytes == null){
-                    return null;
-                }
-                return SafeEncoder.encode(bytes);
-			}
-		});
-    }
+    String spop(String key);
 
     /**
-     * 返回Set中的元素个数.
+     * 计算SET的长度
+     * @param key 缓存Key
+     * @return Long
+     */
+    Long scard(String key);
+
+    /**
+     * 判断元素是否包含在SET里
+     * @param key 缓存Key
+     * @param member 元素数据
+     * @return true or false
+     */
+    Boolean sismember(String key, String member);
+
+    /**
+     * 随机从SET里取出count个数据, 但不从SET中移除
+     * @param key 缓存Key
+     * @param count 数据个数
+     * @return List
+     */
+    List<String> srandmember(String key, int count);
+
+    /**
+     * 对SET里的数据排序
+     * @param key 缓存Key
+     * @return List
+     */
+    List<String> ssort(String key);
+
+    /**
+     * 往有序SET里添加元素
+     * @param key 缓存Key
+     * @param score 元素分数(排序依据)
+     * @param member 元素
+     * @return Long
+     */
+    Long zadd(String key, double score, String member);
+
+    /**
+     * 往有序SET里添加元素
+     * @param key 缓存Key
+     * @param scoreMembers 元素集合
+     * @return Long
+     */
+    Long zadd(String key, Map<String, Double> scoreMembers);
+
+    /**
+     * 从有序SET里按页取出元素(升序)
+     * @param key 缓存Key
+     * @param page 页码(从1开始)
+     * @param limit 元素个数
+     * @return Set
+     */
+    Set<String> zrange(String key, int page, int limit);
+
+    /**
+     * 从有序SET里按页取出元素(倒序)
+     * @param key 缓存Key
+     * @param page 页码(从1开始)
+     * @param limit 元素个数
+     * @return Set
+     */
+    Set<String> zrevrange(String key, int page, int limit);
+
+    /**
+     * 从有序SET里移除元素
+     * @param key 缓存Key
+     * @param member 元素
+     * @return Long
+     */
+    Long zrem(String key, String... member);
+
+    /**
+     * 递增有序SET里元素的分数
+     * @param key 缓存Key
+     * @param score 递增的分数
+     * @param member 元素
+     * @return Double
+     */
+    Double zincrby(String key, double score, String member);
+
+    /**
+     * 返回有序SET里元素的排行(升序)
+     * @param key 缓存Key
+     * @param member 元素
+     * @return Long
+     */
+    Long zrank(String key, String member);
+
+    /**
+     * 返回有序SET里元素的排行(倒序)
+     * @param key 缓存Key
+     * @param member 元素
+     * @return Long
+     */
+    Long zrevrank(String key, String member);
+
+    /**
+     * 从有序SET里按页返回元素(升序)
+     * @param key 缓存Key
+     * @param page 页码(从1开始)
+     * @param limit 返回的元素个数
+     * @return Set of Tuple
+     */
+    Set<Tuple> zrangeWithScores(String key, int page, int limit);
+
+    /**
+     * 从有序SET里按页返回元素(倒序)
+     * @param key 缓存Key
+     * @param page 页码(从1开始)
+     * @param limit 返回的元素个数
+     * @return Set of Tuple
+     */
+    Set<Tuple> zrevrangeWithScores(String key, int page, int limit);
+
+    /**
+     * 计算有序SET的元素个数
      * @param key
      * @return Long
      */
-    public Long scard(final String key){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.scard(SafeEncoder.encode(key));
-			}
-		});
-    }
+    Long zcard(String key);
 
     /**
-     * 判断Set中是否包含某元素.
-     * @param key
-     * @param member
-     * @return boolean
+     * 读取有序SET某元素的分数
+     * @param key 缓存Key
+     * @param member 元素
+     * @return Double
      */
-    public Boolean sismember(final String key, final String member){
-    	return this.execute(new RedisCommand<Boolean>(){
-			public Boolean execute(final Jedis conn) throws Exception {
-				return conn.sismember(SafeEncoder.encode(key), SafeEncoder.encode(member));
-			}
-		});
-    }
+    Double zscore(String key, String member);
 
     /**
-     * 随机选取Set中的元素
-     * @param key 缓存Key.
-     * @param count 返回元素个数
-     * @return List
-     */
-    public List<String> srandmember(final String key, final int count){
-    	return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-				List<byte[]> lbs = conn.srandmember(SafeEncoder.encode(key), count);
-                if (lbs == null){
-                    return Collections.emptyList();
-                }
-                return fromBytes(lbs);
-			}
-		});
-    }
-    
-    /**
-     * 将Set中的元素排序.
-     * @param key
-     * @return List
-     */
-    public List<String> ssort(final String key){
-    	return this.execute(new RedisCommand<List<String>>(){
-			public List<String> execute(final Jedis conn) throws Exception {
-				List<byte[]> lbs = conn.sort(SafeEncoder.encode(key));
-                return fromBytes(lbs);
-			}
-		});
-    }
-    
-    /**
-     * 往SortedSet中添加元素.
-     * @param key
-     * @param score
-     * @param member
-     * @return long
-     */
-    public Long zadd(final String key, final double score, final String member){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zadd(SafeEncoder.encode(key), score, SafeEncoder.encode(member));
-			}
-		});
-    }
-    
-    /**
-     * 
-     * 往SortedSet中添加元素.
-     * @param key
-     * @param scoreMembers
-     * @return long
-     */
-    public Long zadd(final String key, final Map<String, Double> scoreMembers){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-                Map<byte[], Double> ms = new HashMap<byte[], Double>();
-                Iterator<String> itor = scoreMembers.keySet().iterator();
-                while (itor.hasNext()){
-                    String k = itor.next();
-                    ms.put(SafeEncoder.encode(k), scoreMembers.get(k));
-                }
-				return conn.zadd(SafeEncoder.encode(key), ms);
-			}
-		});
-    }
-
-    public Set<String> zrange(final String key, final int page, final int limit){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-				long start = (page - 1) * limit;
-				long end = start + limit;
-				Set<byte[]> bs = conn.zrange(SafeEncoder.encode(key), start, end);
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(SafeEncoder.encode(b));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-    public Set<String> zrevrange(final String key, final int page, final int limit){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-				long start = (page - 1) * limit;
-				long end = start + limit;
-				Set<byte[]> bs = conn.zrevrange(SafeEncoder.encode(key), start, end);
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(SafeEncoder.encode(b));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-    
-    public Long zrem(final String key, final String... member){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zrem(SafeEncoder.encode(key), SafeEncoder.encodeMany(member));
-			}
-		});
-    }
-
-    public Double zincrby(final String key, final double score, final String member){
-    	return this.execute(new RedisCommand<Double>(){
-			public Double execute(final Jedis conn) throws Exception {
-				return conn.zincrby(SafeEncoder.encode(key), score, SafeEncoder.encode(member));
-			}
-		});
-    }
-
-    /**
-     * 按升序排序，取得排名.
-     * @param key
-     * @param member
-     * @return long
-     */
-    public Long zrank(final String key, final String member){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zrank(SafeEncoder.encode(key), SafeEncoder.encode(member));
-			}
-		});
-    }
-
-    /**
-     * 按降序排序，取得排名.
-     * @param key
-     * @param member
-     * @return long
-     */
-    public Long zrevrank(final String key, final String member){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zrevrank(SafeEncoder.encode(key), SafeEncoder.encode(member));
-			}
-		});
-    }
-    
-    /**
-     * 返回SortedSet元素和分数. 按升序排
-     * @param key
-     * @param page
-     * @param limit
-     * @return Set
-     */
-    public Set<Tuple> zrangeWithScores(final String key, final int page, final int limit){
-    	return this.execute(new RedisCommand<Set<Tuple>>(){
-			public Set<Tuple> execute(final Jedis conn) throws Exception {
-				long start = (page - 1) * limit;
-				long end = start + limit;
-				Set<Tuple> bs = conn.zrangeWithScores(SafeEncoder.encode(key), start, end);
-                return bs;
-			}
-		});
-    }
-    
-    /**
-     * 返回SortedSet元素和分数. 按降序排
-     * @param key
-     * @param page
-     * @param limit
-     * @return Set
-     */
-    public Set<Tuple> zrevrangeWithScores(final String key, final int page, final int limit){
-    	return this.execute(new RedisCommand<Set<Tuple>>(){
-			public Set<Tuple> execute(final Jedis conn) throws Exception {
-				long start = (page - 1) * limit;
-				long end = start + limit;
-				return conn.zrevrangeWithScores(SafeEncoder.encode(key), start, end);
-			}
-		});
-    }
-    
-    /**
-     * 返回SortedSet元素个数.
-     * @param key
-     * @return long
-     */
-    public Long zcard(final String key){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zcard(SafeEncoder.encode(key));
-			}
-		});
-    }
-
-    /**
-     * 返回某个元素的分数.
-     * @param key
-     * @param member
-     * @return double
-     */
-    public Double zscore(final String key, final String member){
-    	return this.execute(new RedisCommand<Double>(){
-			public Double execute(final Jedis conn) throws Exception {
-				return conn.zscore(SafeEncoder.encode(key), SafeEncoder.encode(member));
-			}
-		});
-    }
-    
-    public Long zcount(final String key, final double min, final double max){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zcount(SafeEncoder.encode(key), min, max);
-			}
-		});
-    }
-
-    public Long zcount(final String key, final String min, final String max){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zcount(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-			}
-		});
-    }
-
-    /**
-     * 返回分数在[min, max]区间内的元素.
-     * 仅返回元素.
+     *
      * @param key
      * @param min
      * @param max
-     * @return Set
+     * @return
      */
-    public Set<String> zrangeByScore(final String key, final double min, final double max){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-				Set<byte[]> bs = conn.zrangeByScore(SafeEncoder.encode(key), min, max);
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(new String(b, Protocol.CHARSET));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
+    Long zcount(String key, double min, double max);
 
-    public Set<String> zrangeByScore(final String key, final String min, final String max){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-				Set<byte[]> bs = conn.zrangeByScore(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(new String(b, Protocol.CHARSET));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-
-    public Set<String> zrevrangeByScore(final String key, final double min, final double max){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-				Set<byte[]> bs = conn.zrevrangeByScore(SafeEncoder.encode(key), min, max);
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(new String(b, Protocol.CHARSET));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-    
-    public Set<String> zrevrangeByScore(final String key, final String min, final String max){
-    	return this.execute(new RedisCommand<Set<String>>(){
-			public Set<String> execute(final Jedis conn) throws Exception {
-                Set<byte[]> bs = conn.zrevrangeByScore(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-                Set<String> ret = new HashSet<String>();
-                for (byte[] b : bs){
-                    if (b != null) {
-                        ret.add(new String(b, Protocol.CHARSET));
-                    }
-                }
-                return ret;
-			}
-		});
-    }
-    
     /**
-     * 返回分数在[min, max]区间内的元素.
-     * 返回元素和分数.
+     *
      * @param key
      * @param min
      * @param max
-     * @return Set
+     * @return
      */
-    public Set<Tuple> zrangeByScoreWithScores(final String key, final double min, final double max){
-    	return this.execute(new RedisCommand<Set<Tuple>>(){
-			public Set<Tuple> execute(final Jedis conn) throws Exception {
-				return conn.zrangeByScoreWithScores(SafeEncoder.encode(key), min, max);
-			}
-		});
-    }
-
-    public Set<Tuple> zrevrangeByScoreWithScores(final String key, final double max, final double min){
-    	return this.execute(new RedisCommand<Set<Tuple>>(){
-			public Set<Tuple> execute(final Jedis conn) throws Exception {
-				return conn.zrangeByScoreWithScores(SafeEncoder.encode(key), min, max);
-			}
-		});
-    }
-
-    public Set<Tuple> zrangeByScoreWithScores(final String key, final String min, final String max){
-    	return this.execute(new RedisCommand<Set<Tuple>>(){
-			public Set<Tuple> execute(final Jedis conn) throws Exception {
-				return conn.zrangeByScoreWithScores(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-			}
-		});
-    }
-    
-    public Set<Tuple> zrevrangeByScoreWithScores(final String key, final String max, final String min){
-    	return this.execute(new RedisCommand<Set<Tuple>>(){
-			public Set<Tuple> execute(final Jedis conn) throws Exception {
-				return conn.zrevrangeByScoreWithScores(SafeEncoder.encode(key), SafeEncoder.encode(min), SafeEncoder.encode(max));
-			}
-		});
-    }
+    Long zcount(String key, String min, String max);
 
     /**
-     * 删除[start, end]这个区间排名的元素.
-     * @param key
-     * @param start
-     * @param end
-     * @return long
+     * 从有序SET里按[min, max]返回元素(升序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
      */
-    public Long zremrangeByRank(final String key, final int start, final int end){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zremrangeByRank(SafeEncoder.encode(key), start, end);
-			}
-		});
-    }
+    Set<String> zrangeByScore(String key, double min, double max);
 
-    public Long zremrangeByScore(final String key, final double start, final double end){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zremrangeByScore(SafeEncoder.encode(key), start, end);
-			}
-		});
-    }
-    
-    public Long zremrangeByScore(final String key, final String start, final String end){
-    	return this.execute(new RedisCommand<Long>(){
-			public Long execute(final Jedis conn) throws Exception {
-				return conn.zremrangeByScore(SafeEncoder.encode(key), SafeEncoder.encode(start), SafeEncoder.encode(end));
-			}
-		});
-    }
+    /**
+     * 从有序SET里按[min, max]返回元素(升序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<String> zrangeByScore(String key, String min, String max);
 
+    /**
+     * 从有序SET里按[min, max]返回元素(倒序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<String> zrevrangeByScore(String key, double min, double max);
+    /**
+     * 从有序SET里按[min, max]返回元素(倒序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<String> zrevrangeByScore(String key, String min, String max);
+
+    /**
+     * 从有序SET里按[min, max]返回元素(升序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<Tuple> zrangeByScoreWithScores(String key, double min, double max);
+    /**
+     * 从有序SET里按[min, max]返回元素(倒序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<Tuple> zrevrangeByScoreWithScores(String key, double max, double min);
+    /**
+     * 从有序SET里按[min, max]返回元素(升序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<Tuple> zrangeByScoreWithScores(String key, String min, String max);
+    /**
+     * 从有序SET里按[min, max]返回元素(倒序)
+     * @param key 缓存Key
+     * @param min 最小分数
+     * @param max 最大分数
+     * @return Set
+     */
+    Set<Tuple> zrevrangeByScoreWithScores(String key, String max, String min);
+    /**
+     * 从有序SET里按[start, end]移除元素
+     * @param key 缓存Key
+     * @param start 开始位置
+     * @param end 结束位置
+     * @return Long
+     */
+    Long zremrangeByRank(String key, int start, int end);
+    /**
+     * 从有序SET里按[start, end]移除元素
+     * @param key 缓存Key
+     * @param start 开始分数
+     * @param end 结束分数
+     * @return Long
+     */
+    Long zremrangeByScore(String key, double start, double end);
+    /**
+     * 从有序SET里按[start, end]移除元素
+     * @param key 缓存Key
+     * @param start 开始分数
+     * @param end 结束分数
+     * @return Long
+     */
+    Long zremrangeByScore(String key, String start, String end);
 }

@@ -14,7 +14,7 @@ public class RedisConfigTest {
     @org.junit.Test
     public void testDelete() throws Exception {
 
-//        RedisBuket redisBuket = new RedisBuket();
+//        RedisSimpleBuket redisBuket = new RedisSimpleBuket();
 //        String[] keys = new String[2];
 //        keys[0] = "person:1";
 //        keys[1] = "person:2";

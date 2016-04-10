@@ -8,7 +8,7 @@ import java.util.Set;
 /**
  * Created by dengyaming on 4/10/16.
  */
-public class RedisSentinelBuket extends RedisBuket {
+public class RedisSentinelBuket extends RedisSimpleBuket {
 
     static RedisSentinelBuket redisBuket = null;
 
