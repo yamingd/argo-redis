@@ -68,12 +68,12 @@ public abstract class RedisTemplate implements Closeable {
     protected void initJedisPool() {
         if (null == redisConfig.getSentinel() || !redisConfig.getSentinel().enabled) {
             this.jedisPool =
-                    new JedisPool(jedisPoolConfig, redisConfig.getHost(), redisConfig.getPort());
+                    new JedisPool(jedisPoolConfig, redisConfig.getHost(), redisConfig.getPort(), redisConfig.getTimeout(), redisConfig.getPasswd());
             logger.info("initJedisPool. {}", this.jedisPool);
         }else{
             Set<String> sets = new HashSet<>();
             sets.addAll(redisConfig.getSentinel().hosts);
-            this.jedisPool = new JedisSentinelPool(redisConfig.getSentinel().master, sets, jedisPoolConfig);
+            this.jedisPool = new JedisSentinelPool(redisConfig.getSentinel().master, sets, jedisPoolConfig, redisConfig.getTimeout(), redisConfig.getPasswd());
             logger.info("initJedisPool. {}", this.jedisPool);
         }
     }

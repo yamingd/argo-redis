@@ -50,13 +50,15 @@ public class RedisConfig {
 
     private Integer maxActive;
     private Integer maxIdle;
-    private Integer timeout;
+    private Integer timeout = 2000;
     private String host;
     private Integer port;
     private Boolean testOnBorrow = true;
     private Boolean testWhileIdle = true;
     private Sentinel sentinel;
-    private Integer aliveCheck = 30; // 30s
+    private Integer aliveCheck = 300; // 30s
+
+    private String passwd;
 
     public Integer getMaxActive() {
         return maxActive;
@@ -128,6 +130,15 @@ public class RedisConfig {
 
     public void setAliveCheck(Integer aliveCheck) {
         this.aliveCheck = aliveCheck;
+    }
+
+
+    public String getPasswd() {
+        return passwd;
+    }
+
+    public void setPasswd(String passwd) {
+        this.passwd = passwd;
     }
 
     @Override
