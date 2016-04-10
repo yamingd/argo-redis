@@ -6,27 +6,24 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisSentinelPool;
 import redis.clients.util.Pool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 public abstract class RedisTemplate implements Closeable {
 
     protected Logger logger = null;
 
-    private boolean ALIVE = true;
-    private boolean serverDown = false;
+    protected volatile boolean ALIVE = true;
+    protected volatile boolean serverDown = false;
 
-    private volatile boolean stopping = false;
-    private RedisConfig redisConfig = null;
+    protected volatile boolean stopping = false;
+    protected RedisConfig redisConfig = null;
 
-    private Pool<Jedis> jedisPool;
-    private JedisPoolConfig jedisPoolConfig;
+    protected Pool<Jedis> jedisPool;
+    protected JedisPoolConfig jedisPoolConfig;
 
     protected MessagePack messagePack = new MessagePack();
     protected MonitorThread monitorThread;
@@ -65,20 +62,25 @@ public abstract class RedisTemplate implements Closeable {
         return jedisPool;
     }
 
+    /**
+     * 初始链接池(简单版)
+     */
     protected void initJedisPool() {
-        if (null == redisConfig.getSentinel() || !redisConfig.getSentinel().enabled) {
-            this.jedisPool =
-                    new JedisPool(jedisPoolConfig, redisConfig.getHost(), redisConfig.getPort(), redisConfig.getTimeout(), redisConfig.getPasswd());
-            logger.info("initJedisPool. {}", this.jedisPool);
-        }else{
-            Set<String> sets = new HashSet<>();
-            sets.addAll(redisConfig.getSentinel().hosts);
-            this.jedisPool = new JedisSentinelPool(redisConfig.getSentinel().master, sets, jedisPoolConfig, redisConfig.getTimeout(), redisConfig.getPasswd());
-            logger.info("initJedisPool. {}", this.jedisPool);
-        }
+        this.jedisPool =
+                new JedisPool(jedisPoolConfig, redisConfig.getHost(),
+                        redisConfig.getPort(), redisConfig.getTimeout(), redisConfig.getPasswd());
+
+        logger.info("initJedisPool. {}", this.jedisPool);
     }
 
-    // 执行具体COMMAND
+    /**
+     *
+     * 执行Redis Command
+     *
+     * @param action
+     * @param <T>
+     * @return
+     */
     public <T> T execute(final RedisCommand<T> action) {
         if (!ALIVE) {
             logger.error("Redis is Still Down.");

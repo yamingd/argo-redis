@@ -27,6 +27,19 @@ public class RedisConfig {
         }
     }
 
+    public static class Cluster{
+        public boolean enabled = false;
+        public List<String> hosts = null;
+
+        @Override
+        public String toString() {
+            return "Sentinel{" +
+                    "enabled=" + enabled +
+                    ", hosts=" + hosts +
+                    '}';
+        }
+    }
+
     /**
      *
      * @throws IOException
@@ -56,8 +69,8 @@ public class RedisConfig {
     private Boolean testOnBorrow = true;
     private Boolean testWhileIdle = true;
     private Sentinel sentinel;
+    private Cluster cluster;
     private Integer aliveCheck = 300; // 30s
-
     private String passwd;
 
     public Integer getMaxActive() {
@@ -139,6 +152,14 @@ public class RedisConfig {
 
     public void setPasswd(String passwd) {
         this.passwd = passwd;
+    }
+
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
     }
 
     @Override
