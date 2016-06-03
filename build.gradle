@@ -1,5 +1,5 @@
 group 'com.github.yamingd.argo'
-version '2.3.2'
+version '2.3.3'
 
 apply plugin: 'maven'
 apply plugin: 'java'

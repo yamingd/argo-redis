@@ -74,9 +74,9 @@ public class RedisClusterBuket extends RedisSimpleBuket {
 
     @Override
     public <T> List<T> mget(Class<T> clazz, String... keys) {
+        List<T> ret = new ArrayList<T>();
         try {
             List<byte[]> bytes = jedisCluster.mget(SafeEncoder.encodeMany(keys));
-            List<T> ret = new ArrayList<T>();
             for (byte[] item : bytes){
                 if (item != null) {
                     ret.add(messagePack.read(item, clazz));
@@ -87,7 +87,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             return ret;
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
-            return null;
+            return ret;
         }
     }
 
