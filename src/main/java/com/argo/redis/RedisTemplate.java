@@ -1,6 +1,6 @@
 package com.argo.redis;
 
-import org.msgpack.MessagePack;
+import com.argo.redis.impl.RedisMsgPack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -22,14 +22,26 @@ public abstract class RedisTemplate implements Closeable {
     protected volatile boolean stopping = false;
     protected RedisConfig redisConfig = null;
 
+    /**
+     * 链接池
+     */
     protected Pool<Jedis> jedisPool;
     protected JedisPoolConfig jedisPoolConfig;
 
-    protected MessagePack messagePack = new MessagePack();
+    /**
+     * 监控
+     */
     protected MonitorThread monitorThread;
+
+    /**
+     * 序列化
+     */
+    protected RedisBuffer redisBuffer;
 
     public RedisTemplate() throws Exception {
         logger = LoggerFactory.getLogger(this.getClass());
+
+        redisBuffer = new RedisMsgPack();
 
         RedisConfig.load();
         redisConfig = RedisConfig.instance;
@@ -56,6 +68,14 @@ public abstract class RedisTemplate implements Closeable {
         if (null != this.jedisPool){
             this.jedisPool.close();
         }
+    }
+
+    public RedisBuffer getRedisBuffer() {
+        return redisBuffer;
+    }
+
+    public void setRedisBuffer(RedisBuffer redisBuffer) {
+        this.redisBuffer = redisBuffer;
     }
 
     public Pool<Jedis> getJedisPool() {

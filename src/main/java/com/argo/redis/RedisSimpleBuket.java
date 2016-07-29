@@ -81,16 +81,11 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
      */
     @Override
     public <T> List<T> fromBytes(Class<T> clazz, List<byte[]> lbs){
-        List<T> ret = new ArrayList<T>();
-        for (byte[] b : lbs){
-            if (b != null) {
-                try {
-                    ret.add(messagePack.read(b, clazz));
-                } catch (IOException e) {
-                    logger.error(e.getMessage(), e);
-                    ret.add(null);
-                }
-            }
+        List<T> ret = Collections.EMPTY_LIST;
+        try {
+            ret = getRedisBuffer().read(lbs, clazz);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
         return ret;
     }
@@ -116,15 +111,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
         return this.execute(new RedisCommand<List<T>>(){
             public List<T> execute(final Jedis conn) throws Exception {
                 List<byte[]> bytes = conn.mget(SafeEncoder.encodeMany(keys));
-                List<T> ret = new ArrayList<T>();
-                for (byte[] item : bytes){
-                    if (item != null) {
-                        ret.add(messagePack.read(item, clazz));
-                    }else{
-                        ret.add(null);
-                    }
-                }
-                return ret;
+                return getRedisBuffer().read(bytes, clazz);
             }
         });
     }
@@ -151,7 +138,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 if (bytes == null){
                     return null;
                 }
-                return messagePack.read(bytes, clazz);
+                return getRedisBuffer().read(bytes, clazz);
             }
         });
     }
@@ -160,7 +147,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
     public <T> String set(final String key, final T value){
         return this.execute(new RedisCommand<String>(){
             public String execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
+                byte[] ds = getRedisBuffer().write(value);
                 return conn.set(SafeEncoder.encode(key), ds);
             }
         });
@@ -171,7 +158,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
         return this.execute(new RedisCommand<Boolean>(){
             public Boolean execute(final Jedis conn) throws Exception {
                 for (int i = 0; i < keys.size(); i++) {
-                    byte[] ds = messagePack.write(values.get(i));
+                    byte[] ds = getRedisBuffer().write(values.get(i));
                     conn.set(SafeEncoder.encode(keys.get(i)), ds);
                 }
                 return true;
@@ -196,12 +183,12 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
     public <T> T getSet(final Class<T> clazz, final String key, final T value){
         return this.execute(new RedisCommand<T>(){
             public T execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
+                byte[] ds = getRedisBuffer().write(value);
                 byte[] ret = conn.getSet(SafeEncoder.encode(key), ds);
                 if (ret == null){
                     return null;
                 }
-                return messagePack.read(ret, clazz);
+                return getRedisBuffer().read(ret, clazz);
             }
         });
     }
@@ -219,7 +206,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
     public <T> Long setnx(final String key, final T value){
         return this.execute(new RedisCommand<Long>(){
             public Long execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
+                byte[] ds = getRedisBuffer().write(value);
                 return conn.setnx(SafeEncoder.encode(key), ds);
             }
         });
@@ -238,7 +225,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
     public <T> String setex(final String key, final int seconds, final T value){
         return this.execute(new RedisCommand<String>(){
             public String execute(final Jedis conn) throws Exception {
-                byte[] ds = messagePack.write(value);
+                byte[] ds = getRedisBuffer().write(value);
                 return conn.setex(SafeEncoder.encode(key), seconds, ds);
             }
         });
@@ -397,7 +384,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
             public Long execute(final Jedis conn) throws Exception {
                 byte[][] bytes = new byte[values.length][];
                 for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
+                    bytes[i] = getRedisBuffer().write(values[i]);
                 }
                 return conn.rpush(SafeEncoder.encode(key), bytes);
             }
@@ -420,7 +407,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
             public Long execute(final Jedis conn) throws Exception {
                 byte[][] bytes = new byte[values.length][];
                 for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
+                    bytes[i] = getRedisBuffer().write(values[i]);
                 }
                 return conn.lpush(SafeEncoder.encode(key), bytes);
             }
@@ -462,11 +449,11 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 long start = (page - 1) * limit;
                 long end = start + limit;
                 List<byte[]> ls = conn.lrange(SafeEncoder.encode(key), start, end);
-                List<T> ret = new ArrayList<T>();
-                for (byte[] b : ls){
-                    if (b != null) {
-                        ret.add(messagePack.read(b, clazz));
-                    }
+                List<T> ret = Collections.EMPTY_LIST;
+                try {
+                    ret = getRedisBuffer().read(ls, clazz);
+                } catch (IOException e) {
+                    logger.error(e.getMessage(), e);
                 }
                 return ret;
             }
@@ -505,7 +492,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 if (bs == null){
                     return null;
                 }
-                return messagePack.read(bs, clazz);
+                return getRedisBuffer().read(bs, clazz);
             }
         });
     }
@@ -524,7 +511,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
     public <T> String lset(final Class<T> clazz, final String key, final int index, final T value){
         return this.execute(new RedisCommand<String>(){
             public String execute(final Jedis conn) throws Exception {
-                byte[] bytes = messagePack.write(value);
+                byte[] bytes = getRedisBuffer().write(value);
                 return conn.lset(SafeEncoder.encode(key), index, bytes);
             }
         });
@@ -544,7 +531,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
     public <T> Long lrem(final Class<T> clazz, final String key, final T value){
         return this.execute(new RedisCommand<Long>(){
             public Long execute(final Jedis conn) throws Exception {
-                byte[] bytes = messagePack.write(value);
+                byte[] bytes = getRedisBuffer().write(value);
                 return conn.lrem(SafeEncoder.encode(key), 0, bytes);
             }
         });
@@ -571,7 +558,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 if (bs == null){
                     return null;
                 }
-                return messagePack.read(bs, clazz);
+                return getRedisBuffer().read(bs, clazz);
             }
         });
     }
@@ -603,7 +590,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 for (int i = 0; i < limit; i++) {
                     byte[] bs = conn.lpop(bk);
                     if (bs != null){
-                        resp.add(messagePack.read(bs, clazz));
+                        resp.add(getRedisBuffer().read(bs, clazz));
                     }
 
                 }
@@ -634,7 +621,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 if (bs == null){
                     return null;
                 }
-                return messagePack.read(bs, clazz);
+                return getRedisBuffer().read(bs, clazz);
             }
         });
     }
@@ -666,7 +653,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 for (int i = 0; i < limit; i++) {
                     byte[] bs = conn.rpop(bk);
                     if (bs != null){
-                        resp.add(messagePack.read(bs, clazz));
+                        resp.add(getRedisBuffer().read(bs, clazz));
                     }
 
                 }
@@ -707,7 +694,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
             public Long execute(final Jedis conn) throws Exception {
                 byte[][] bytes = new byte[values.length][];
                 for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
+                    bytes[i] = getRedisBuffer().write(values[i]);
                 }
                 return conn.lpushx(SafeEncoder.encode(key), bytes);
             }
@@ -729,7 +716,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
             public Long execute(final Jedis conn) throws Exception {
                 byte[][] bytes = new byte[values.length][];
                 for (int i = 0; i < values.length; i++) {
-                    bytes[i] = messagePack.write(values[i]);
+                    bytes[i] = getRedisBuffer().write(values[i]);
                 }
                 return conn.rpushx(SafeEncoder.encode(key), bytes);
             }
@@ -754,7 +741,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 List<T> ret = new ArrayList<T>();
                 for (byte[] b : bs){
                     if (b != null) {
-                        ret.add(messagePack.read(b, clazz));
+                        ret.add(getRedisBuffer().read(b, clazz));
                     }
                 }
                 return ret;
@@ -780,7 +767,7 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
                 List<T> ret = new ArrayList<T>();
                 for (byte[] b : bs){
                     if (b != null) {
-                        ret.add(messagePack.read(b, clazz));
+                        ret.add(getRedisBuffer().read(b, clazz));
                     }
                 }
                 return ret;

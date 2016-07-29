@@ -74,16 +74,10 @@ public class RedisClusterBuket extends RedisSimpleBuket {
 
     @Override
     public <T> List<T> mget(Class<T> clazz, String... keys) {
-        List<T> ret = new ArrayList<T>();
+        List<T> ret = Collections.EMPTY_LIST;
         try {
             List<byte[]> bytes = jedisCluster.mget(SafeEncoder.encodeMany(keys));
-            for (byte[] item : bytes){
-                if (item != null) {
-                    ret.add(messagePack.read(item, clazz));
-                }else{
-                    ret.add(null);
-                }
-            }
+            ret = getRedisBuffer().read(bytes, clazz);
             return ret;
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -107,7 +101,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             return null;
         }
         try {
-            return messagePack.read(bytes, clazz);
+            return getRedisBuffer().read(bytes, clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             return null;
@@ -117,7 +111,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     @Override
     public <T> String set(String key, T value) {
         try {
-            byte[] ds = messagePack.write(value);
+            byte[] ds = getRedisBuffer().write(value);
             return jedisCluster.set(SafeEncoder.encode(key), ds);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -129,7 +123,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     public <T> boolean set(List<String> keys, List<T> values) {
         try {
             for (int i = 0; i < keys.size(); i++) {
-                byte[] ds = messagePack.write(values.get(i));
+                byte[] ds = getRedisBuffer().write(values.get(i));
                 jedisCluster.set(SafeEncoder.encode(keys.get(i)), ds);
             }
             return true;
@@ -151,12 +145,12 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     @Override
     public <T> T getSet(Class<T> clazz, String key, T value) {
         try {
-            byte[] ds = messagePack.write(value);
+            byte[] ds = getRedisBuffer().write(value);
             byte[] ret = jedisCluster.getSet(SafeEncoder.encode(key), ds);
             if (ret == null){
                 return null;
             }
-            return messagePack.read(ret, clazz);
+            return getRedisBuffer().read(ret, clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             return null;
@@ -171,7 +165,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     @Override
     public <T> Long setnx(String key, T value) {
         try {
-            byte[] ds = messagePack.write(value);
+            byte[] ds = getRedisBuffer().write(value);
             return jedisCluster.setnx(SafeEncoder.encode(key), ds);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -187,7 +181,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     @Override
     public <T> String setex(String key, int seconds, T value) {
         try {
-            byte[] ds = messagePack.write(value);
+            byte[] ds = getRedisBuffer().write(value);
             return jedisCluster.setex(SafeEncoder.encode(key), seconds, ds);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -287,7 +281,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
         try {
             byte[][] bytes = new byte[values.length][];
             for (int i = 0; i < values.length; i++) {
-                bytes[i] = messagePack.write(values[i]);
+                bytes[i] = getRedisBuffer().write(values[i]);
             }
             return jedisCluster.rpush(SafeEncoder.encode(key), bytes);
         } catch (IOException e) {
@@ -306,7 +300,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
         try {
             byte[][] bytes = new byte[values.length][];
             for (int i = 0; i < values.length; i++) {
-                bytes[i] = messagePack.write(values[i]);
+                bytes[i] = getRedisBuffer().write(values[i]);
             }
             return jedisCluster.lpush(SafeEncoder.encode(key), bytes);
         } catch (IOException e) {
@@ -339,16 +333,11 @@ public class RedisClusterBuket extends RedisSimpleBuket {
         long start = (page - 1) * limit;
         long end = start + limit;
         List<byte[]> ls = jedisCluster.lrange(SafeEncoder.encode(key), start, end);
-        List<T> ret = new ArrayList<T>();
-        for (byte[] b : ls){
-            if (b != null) {
-                try {
-                    ret.add(messagePack.read(b, clazz));
-                } catch (IOException e) {
-                    logger.error(e.getMessage(), e);
-                    ret.add(null);
-                }
-            }
+        List<T> ret = Collections.EMPTY_LIST;
+        try {
+            ret = getRedisBuffer().read(ls, clazz);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
         return ret;
     }
@@ -374,7 +363,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             return null;
         }
         try {
-            return messagePack.read(bs, clazz);
+            return getRedisBuffer().read(bs, clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             return null;
@@ -389,7 +378,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     @Override
     public <T> String lset(Class<T> clazz, String key, int index, T value) {
         try {
-            byte[] bytes = messagePack.write(value);
+            byte[] bytes = getRedisBuffer().write(value);
             return jedisCluster.lset(SafeEncoder.encode(key), index, bytes);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -405,7 +394,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     @Override
     public <T> Long lrem(Class<T> clazz, String key, T value) {
         try {
-            byte[] bytes = messagePack.write(value);
+            byte[] bytes = getRedisBuffer().write(value);
             return jedisCluster.lrem(SafeEncoder.encode(key), 0, bytes);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -429,7 +418,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             return null;
         }
         try {
-            return messagePack.read(bs, clazz);
+            return getRedisBuffer().read(bs, clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             return null;
@@ -458,7 +447,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             byte[] bs = jedisCluster.lpop(bk);
             if (bs != null){
                 try {
-                    resp.add(messagePack.read(bs, clazz));
+                    resp.add(getRedisBuffer().read(bs, clazz));
                 } catch (IOException e) {
                     logger.error(e.getMessage(), e);
                     resp.add(null);
@@ -485,7 +474,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             return null;
         }
         try {
-            return messagePack.read(bs, clazz);
+            return getRedisBuffer().read(bs, clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             return null;
@@ -514,7 +503,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
             byte[] bs = jedisCluster.rpop(bk);
             if (bs != null){
                 try {
-                    resp.add(messagePack.read(bs, clazz));
+                    resp.add(getRedisBuffer().read(bs, clazz));
                 } catch (IOException e) {
                     resp.add(null);
                 }
@@ -546,7 +535,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
         try {
             byte[][] bytes = new byte[values.length][];
             for (int i = 0; i < values.length; i++) {
-                bytes[i] = messagePack.write(values[i]);
+                bytes[i] = getRedisBuffer().write(values[i]);
             }
             return jedisCluster.lpushx(SafeEncoder.encode(key), bytes);
         } catch (IOException e) {
@@ -565,7 +554,7 @@ public class RedisClusterBuket extends RedisSimpleBuket {
         try {
             byte[][] bytes = new byte[values.length][];
             for (int i = 0; i < values.length; i++) {
-                bytes[i] = messagePack.write(values[i]);
+                bytes[i] = getRedisBuffer().write(values[i]);
             }
             return jedisCluster.rpushx(SafeEncoder.encode(key), bytes);
         } catch (IOException e) {

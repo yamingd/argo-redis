@@ -1,5 +1,5 @@
 group 'com.github.yamingd.argo'
-version '2.3.3'
+version '2.4.0'
 
 apply plugin: 'maven'
 apply plugin: 'java'
@@ -32,6 +32,11 @@ dependencies {
     compile 'redis.clients:jedis:2.8.1'
     compile 'org.msgpack:msgpack:0.6.12'
     compile 'com.google.guava:guava:18.0'
+    compile 'com.esotericsoftware.kryo:kryo:4.0.0'
+    compile 'com.esotericsoftware.kryo:kryo-shaded:4.0.0'
+    compile 'de.javakaffee:kryo-serializers:0.38'
+    compile 'com.google.protobuf:protobuf-java:2.6.1'
+    compile 'joda-time:joda-time:2.9.4'
     compile('org.slf4j:slf4j-api:1.7.5') {
         exclude(module: 'log4j-over-slf4j')
     }
