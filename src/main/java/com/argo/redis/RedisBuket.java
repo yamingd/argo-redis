@@ -144,7 +144,13 @@ public interface RedisBuket {
      * @return long
      */
     long expire(String key, int timeout);
-
+    /**
+     * 设置某Key的过期秒数
+     * @param key 缓存Key
+     * @param timeout 过期秒数
+     * @return long
+     */
+    long expireAt(String key, int timeout);
     /**
      * 判断某Key是否存在
      * @param key 缓存Key

@@ -195,6 +195,12 @@ public class RedisClusterBuket extends RedisSimpleBuket {
     }
 
     @Override
+    public long expireAt(String key, int timeout) {
+        long ts = System.currentTimeMillis()/1000 + timeout;
+        return jedisCluster.expireAt(SafeEncoder.encode(key), ts);
+    }
+
+    @Override
     public boolean exists(String key) {
         return jedisCluster.exists(SafeEncoder.encode(key));
     }

@@ -241,7 +241,17 @@ public class RedisSimpleBuket extends RedisTemplate implements RedisBuket {
 		});
 	}
 
-	@Override
+    @Override
+    public long expireAt(String key, int timeout) {
+        long ts = System.currentTimeMillis() / 1000 + timeout;
+        return this.execute(new RedisCommand<Long>(){
+            public Long execute(final Jedis conn) throws Exception {
+                return conn.expireAt(SafeEncoder.encode(key), ts);
+            }
+        });
+    }
+
+    @Override
     public boolean exists(final String key){
 		return this.execute(new RedisCommand<Boolean>(){
 			public Boolean execute(final Jedis conn) throws Exception {
