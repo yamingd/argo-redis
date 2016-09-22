@@ -206,25 +206,27 @@ public abstract class RedisTemplate implements Closeable {
 
                 logger.info("{}", jedisPool.toString());
 
-                try {
-                    // 30秒执行监听
-                    int n = sleepTime / baseSleepTime;
-                    for (int i = 0; i < n; i++) {
-                        if (serverDown) {// 检查到异常，立即进行检测处理
-                            break;
-                        }
-                        try {
-                            Thread.sleep(baseSleepTime);
-                        } catch (InterruptedException e) {
-                            break;
-                        }
-                        if (stopping){
-                            break;
-                        }
+                // 30秒执行监听
+                int n = sleepTime / baseSleepTime;
+                for (int i = 0; i < n; i++) {
+                    if (serverDown) {// 检查到异常，立即进行检测处理
+                        break;
+                    }
+                    try {
+                        Thread.sleep(baseSleepTime);
+                    } catch (InterruptedException e) {
+                        break;
                     }
                     if (stopping){
                         break;
                     }
+                }
+                if (stopping){
+                    break;
+                }
+
+                try {
+
                     // 连续做3次连接获取
                     int errorTimes = 0;
                     for (int i = 0; i < 3 && !stopping; i++) {
@@ -240,19 +242,22 @@ public abstract class RedisTemplate implements Closeable {
                             if (stopping){
                                 break;
                             }
-                            logger.error("redis链接错误", e);
+                            if (errorTimes == 0) {
+                                logger.error("redis链接错误", e);
+                            }
                             errorTimes++;
                         }
                     }
                     if (stopping){
                         break;
                     }
+
                     if (errorTimes == 3) {// 3次全部出错，表示服务器出现问题
                         ALIVE = false;
                         serverDown = true; // 只是在异常出现第一次进行跳出处理，后面的按异常检查时间进行延时处理
                         logger.error("redis[{}] 服务器连接不上", getServerName());
                         // 修改休眠时间为5秒，尽快恢复服务
-                        sleepTime = 5000;
+                        sleepTime = sleepTime / 3;
                     } else {
                         if (ALIVE == false) {
                             ALIVE = true;
@@ -265,6 +270,7 @@ public abstract class RedisTemplate implements Closeable {
                         logger.info("redis[{}] 当前记录数：{}", getServerName(), jedis.dbSize());
                         returnConnection(jedis);
                     }
+
                 } catch (Exception e) {
                     if (stopping){
                         break;
