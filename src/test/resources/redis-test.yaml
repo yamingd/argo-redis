@@ -6,6 +6,7 @@ port: 6379
 testOnBorrow: true
 testWhileIdle: true
 passwd: test123
+aliveCheck: 10
 sentinel:
   enabled: false
   master: mymaster
