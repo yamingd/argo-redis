@@ -200,27 +200,12 @@ public abstract class RedisTemplate implements Closeable {
     private class MonitorThread extends Thread {
         @Override
         public void run() {
-            int sleepTime = redisConfig.getAliveCheck() * 1000;
-            int baseSleepTime = 1000;
+            int baseSleepTime = redisConfig.getAliveCheck() * 1000;
+            int checkCount = 3;
             while (!stopping) {
 
                 logger.info("{}", jedisPool.toString());
 
-                // 30秒执行监听
-                int n = sleepTime / baseSleepTime;
-                for (int i = 0; i < n; i++) {
-                    if (serverDown) {// 检查到异常，立即进行检测处理
-                        break;
-                    }
-                    try {
-                        Thread.sleep(baseSleepTime);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
-                    if (stopping){
-                        break;
-                    }
-                }
                 if (stopping){
                     break;
                 }
@@ -229,7 +214,14 @@ public abstract class RedisTemplate implements Closeable {
 
                     // 连续做3次连接获取
                     int errorTimes = 0;
-                    for (int i = 0; i < 3 && !stopping; i++) {
+                    for (int i = 0; i < checkCount && !stopping; i++) {
+
+                        try {
+                            Thread.sleep(baseSleepTime);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+
                         try {
                             Jedis jedis = getJedisPool().getResource();
                             if (jedis == null) {
@@ -248,21 +240,23 @@ public abstract class RedisTemplate implements Closeable {
                             errorTimes++;
                         }
                     }
+
                     if (stopping){
                         break;
                     }
 
-                    if (errorTimes == 3) {// 3次全部出错，表示服务器出现问题
+                    if (errorTimes == checkCount) {
+                        // 3次全部出错，表示服务器出现问题
                         ALIVE = false;
                         serverDown = true; // 只是在异常出现第一次进行跳出处理，后面的按异常检查时间进行延时处理
                         logger.error("redis[{}] 服务器连接不上", getServerName());
-                        // 修改休眠时间为5秒，尽快恢复服务
-                        sleepTime = sleepTime / 3;
+                        // 调整休眠时间
+                        baseSleepTime = baseSleepTime + 1000;
                     } else {
                         if (ALIVE == false) {
                             ALIVE = true;
-                            // 修改休眠时间为30秒，服务恢复
-                            sleepTime = redisConfig.getAliveCheck() * 1000;
+                            // 修改休眠时间，服务恢复
+                            baseSleepTime = redisConfig.getAliveCheck() * 1000;
                             logger.info("redis[{}] 服务器恢复正常", getServerName());
                         }
                         serverDown = false;
