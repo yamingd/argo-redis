@@ -1,7 +1,6 @@
 package com.argo.redis;
 
 import com.argo.yaml.YamlTemplate;
-import com.google.common.base.MoreObjects;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,10 +32,11 @@ public class RedisConfig {
 
         @Override
         public String toString() {
-            return "Sentinel{" +
-                    "enabled=" + enabled +
-                    ", hosts=" + hosts +
-                    '}';
+            final StringBuffer sb = new StringBuffer("Cluster{");
+            sb.append("enabled=").append(enabled);
+            sb.append(", hosts=").append(hosts);
+            sb.append('}');
+            return sb.toString();
         }
     }
 
@@ -164,15 +164,18 @@ public class RedisConfig {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("maxActive", maxActive)
-                .add("maxIdle", maxIdle)
-                .add("timeout", timeout)
-                .add("host", host)
-                .add("port", port)
-                .add("testOnBorrow", testOnBorrow)
-                .add("testWhileIdle", testWhileIdle)
-                .add("sentinel", sentinel)
-                .toString();
+        final StringBuffer sb = new StringBuffer("RedisConfig{");
+        sb.append("maxActive=").append(maxActive);
+        sb.append(", maxIdle=").append(maxIdle);
+        sb.append(", timeout=").append(timeout);
+        sb.append(", host='").append(host).append('\'');
+        sb.append(", port=").append(port);
+        sb.append(", testOnBorrow=").append(testOnBorrow);
+        sb.append(", testWhileIdle=").append(testWhileIdle);
+        sb.append(", sentinel=").append(sentinel);
+        sb.append(", cluster=").append(cluster);
+        sb.append(", aliveCheck=").append(aliveCheck);
+        sb.append('}');
+        return sb.toString();
     }
 }

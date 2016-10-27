@@ -1,8 +1,10 @@
 package com.argo.redis;
 
+import com.argo.redis.impl.RedisMsgPack;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -77,6 +79,24 @@ public class RedisClusterTest {
             String key = String.format("person:{%s}:profile", random.nextInt(10000));
             Person cached = redisClusterBuket.get(Person.class, key);
             System.out.println("Cached: " + cached);
+        }
+    }
+
+    @Test
+    public void test_size(){
+        Random random = new Random(new Date().getTime());
+        int id = random.nextInt(10000);
+        Person person = new Person(id);
+        person.setCreateAt(new Date());
+        person.setGender(1);
+        RedisMsgPack redisBuffer = new RedisMsgPack();
+        try {
+
+            byte[] bytes = redisBuffer.write(person);
+            System.out.println(bytes.length);
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
