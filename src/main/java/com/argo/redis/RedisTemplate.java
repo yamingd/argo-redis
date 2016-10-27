@@ -55,6 +55,10 @@ public abstract class RedisTemplate implements Closeable {
 
         this.initJedisPool();
 
+        this.startMonitorThread();
+    }
+
+    protected void startMonitorThread() {
         monitorThread =  new MonitorThread();
         monitorThread.setDaemon(true);
         monitorThread.setName("RedisBucketMonitor");

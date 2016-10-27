@@ -46,7 +46,12 @@ public class RedisClusterBuket extends RedisSimpleBuket {
         }
 
         jedisCluster = new JedisCluster(sets, redisConfig.getTimeout(), this.jedisPoolConfig);
-        logger.info("initJedisPool. {}", this.jedisPool);
+        logger.info("initJedisPool. {}", this.jedisCluster);
+    }
+
+    @Override
+    protected void startMonitorThread() {
+
     }
 
     @Override

@@ -1,0 +1,14 @@
+maxActive: 10
+maxIdle: 10
+timeout: 5000
+testOnBorrow: true
+testWhileIdle: true
+aliveCheck: 1000
+
+cluster:
+  enabled: true
+  hosts:
+    - 127.0.0.1:30001
+    - 127.0.0.1:30002
+    - 127.0.0.1:30003
+    - 127.0.0.1:30004
